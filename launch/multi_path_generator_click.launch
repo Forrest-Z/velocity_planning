@@ -1,0 +1,27 @@
+<launch>
+    <include file="$(find pioneer_transform)/launch/changshu.launch" />
+    <!-- visualizer -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find multi_path_generator)/rviz/vec_map_local_path.rviz"/>
+    <node pkg="vec_map" type="vec_map_visualizer.py" name="vec_map_visualizer" output="screen" />
+    <!-- server -->
+    <!-- <node pkg="vec_map" type="vec_map_server.py" name="vec_map_server" output="screen" args="package://vec_map/data/multi_lane.osm"/> -->
+    <node pkg="vec_map" type="vec_map_server.py" name="vec_map_server" output="screen" args="package://vec_map/data/jifenghui.osm"/>
+    <!-- <node pkg="vec_map_navigation" type="mission_server.py" name="mission_server" args="package://vec_map_navigation/data/challenge_main_YS_IN.yaml" output="screen"/> -->
+    <node pkg="vec_map_navigation" type="mission_server.py" name="mission_server" args="" output="screen"/>
+
+    <node pkg="vec_map_navigation" type="mission_receiver.py" name="mission_receiver" />
+
+    <!-- route -->
+    <node pkg="vec_map_navigation" type="map_localizer.py" name="map_localizer" output="screen">
+        <remap from="initial_point" to="/initial_clicked_point"/>
+        <remap from="goal_point" to="/goal_clicked_point"/>
+    </node>
+    <node pkg="vec_map_navigation" type="goal_point_publisher.py" name="goal_point_publisher" />
+    <node pkg="vec_map_navigation" type="mission_visualizer.py" name="mission_visualizer" output="screen"/>
+
+    <node pkg="multi_path_generator" type="multi_path_generator_node" name="multi_path_generator" output="screen">
+        <remap from="odom" to="vehicle/odom"/>
+        <remap from="steering_report" to="vehicle/steering_report"/>
+        <remap from="curve_update" to="vehicle/curve_update"/>
+    </node>
+</launch>

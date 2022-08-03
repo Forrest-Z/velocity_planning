@@ -1,0 +1,130 @@
+<launch>
+  <arg name="namespace" default="vehicle"/>
+  <arg name="odom_topic" default="vehicle/odom"/>
+  <arg name="linear_velocity" default="5.0"/> 
+  <arg name="name" default="vehicle"/>
+  <arg name="gps_topic" default="/vehicle/odom" />
+  <arg name="points_topic" default="filtered_gd_points" />
+  <arg name="vehicle_frame_id" default="vehicle/base_footprint"/>
+  <arg name="steering_topic" default="/vehicle/steering_report" />
+  <arg name="imu_topic" default="/vehicle/imu/data_raw" />
+  <arg name="local_odometry_topic" default="local_odometry" />
+
+  <!-- Launch the MKZ in the simulated environment -->
+  <include file="$(find dbw_mkz_gazebo)/launch/dbw_mkz_gazebo.launch" >
+    <arg name="use_camera_control" value="true" />
+    <arg name="world_name" value="$(find dbw_mkz_gazebo)/worlds/empty_world.world" />
+    <arg name="sim_param_file" value="$(find multi_path_generator)/yaml/multi_path_simulation_test.yaml" />
+  </include>
+
+  <!-- Launch the DBW_MKZ_CAN -->
+  <include file="$(find dbw_mkz_can)/launch/dbw.launch">
+    <arg name="live" value="false" />
+    <arg name="load_urdf" value="false" />
+    <arg name="can_ns" value="can_bus_dbw" />
+  </include>
+
+  <include file="$(find multi_path_generator)/launch/multi_path_generator.launch" />
+
+  <!-- Twist Controller
+  <include file="$(find dbw_mkz_twist_controller)/launch/twist_controller.launch" >
+    <arg name="vehicle_ns" value="$(arg namespace)" />
+    <arg name="twist_use_pedals"   default="True"/>
+    <arg name="twist_use_steering" default="False"/>
+  </include> -->
+ 
+  <!-- Quintic Spline Controller-->
+  <!-- <node pkg="quintic_spline_controller" type="quintic_spline_controller" name="quintic_spline_controller_node">
+    <param name="global_frame_id" value="world"/>
+    <param name="vehicle_frame_id" value="$(arg namespace)/base_footprint"/>
+    <param name="linear_velocity" value="$(arg linear_velocity)"/>
+    <param name="accel_limit" value="3.0"/>
+    <param name="decel_limit" value="2.0"/>
+    <param name="control_delay" value="0.29"/>
+    <param name="left_steering_ratio" value="14.8"/>
+    <param name="right_steering_ratio" value="14.8"/>
+    <param name="kv" value="0.0"/>
+    <param name="steering_wheel_zero_offset" value="0.0"/>
+    <param name="last_curve_length" value="5.0"/>
+    <remap from="middle_curve" to="$(arg namespace)/middle_curve"/> 
+    <remap from="middle_path" to="$(arg namespace)/middle_path"/>
+    <remap from="path" to="$(arg namespace)/target_path"/>
+    <remap from="curve" to="curve_generator"/>
+    <remap from="odom" to="$(arg odom_topic)"/>
+    <remap from="steering_report" to="$(arg namespace)/steering_report"/>
+    <remap from="gear_report" to="$(arg namespace)/gear_report"/>
+    <remap from="cmd_vel_with_limits" to="$(arg namespace)/cmd_vel_with_limits"/>
+    <remap from="steering_cmd" to="$(arg namespace)/steering_cmd"/>
+    <remap from="dist_remain" to="$(arg namespace)/dist_remain"/>
+  </node> -->
+
+  <!--Controller Core-->
+  <node pkg="pioneer_controller_core" type="pioneer_controller_core" name="pioneer_controller_core_node" output="screen">-->
+    <!--parameter-->
+    <param name="global_frame_id" value="world"/>
+    <param name="vehicle_frame_id" value="$(arg vehicle_frame_id)"/>
+    <param name="accel_limit" value="1.5"/>
+    <param name="decel_limit" value="5.0"/>
+    <param name="daccel_limit" value="0.1"/>
+    <param name="ddecel_limit" value="1.0"/>
+    <param name="cmd_vel" value="1.0"/>
+    <param name="astar_parking_cmd_vel" value="0.5"/>
+    <param name="use_const_cmd_vel" value="true"/>
+    <!--subscriber-->
+    <remap from="path" to="path"/>
+    <remap from="qs_curve" to="curve_generator"/>
+    <remap from="astar_curve" to="$(arg name)/best_curve"/>
+    <remap from="astar_parking_curve" to="vehicle/parking_curve"/>
+    <remap from="middle_lane_curve" to="middle_lane_curve"/>
+    <remap from="left_lane_curve" to="left_lane_curve"/>
+    <remap from="right_lane_curve" to="right_lane_curve"/>
+    <remap from="back_to_middle_request" to="back_to_middle_request"/>
+    <remap from="button" to="button"/>
+    <remap from="odom" to="$(arg gps_topic)"/>
+    <remap from="steering_report" to="$(arg name)/steering_report"/>
+    <remap from="gear_report" to="$(arg name)/gear_report"/>
+    <remap from="emergency_braking" to="emergency_braking"/>
+    
+    <!--publisher-->
+    <remap from="target_path" to="$(arg name)/target_path"/>
+    <remap from="target_curve" to="$(arg name)/target_curve"/>
+    <remap from="gear_cmd" to="$(arg name)/gear_cmd"/>
+    <remap from="pioneer_twist_cmd" to="$(arg name)/pioneer_twist_cmd"/>
+    <remap from="current_pose" to="$(arg name)/current_pose"/>
+    <remap from="dist_remain" to="$(arg name)/dist_remain"/>
+    <remap from="nearest_idx" to="$(arg name)/nearest_idx"/>
+    <remap from="curve_update" to="$(arg name)/curve_update"/>
+    <remap from="goal_reached" to="goal_reached"/>
+    <remap from="turn_signal_cmd" to="$(arg name)/turn_signal_cmd"/>
+    <remap from="emergency_braking_status" to="$(arg name)/emergency_braking_status"/>
+
+  </node>
+
+  <!--Quintic Spline Controller-->
+  <node pkg="quintic_spline_controller" type="quintic_spline_controller" name="quintic_spline_controller_node" output="screen">
+    <!--parameter-->
+    <param name="control_delay" value="0.29"/>
+    <param name="left_steering_ratio" value="14.8"/>
+    <param name="right_steering_ratio" value="14.8"/>
+    <param name="kv" value="0.0"/>
+    <param name="steering_wheel_zero_offset" value="0.0"/>
+    <param name="last_curve_length" value="2.0"/>
+    <!--subscriber-->
+    <remap from="target_curve" to="$(arg name)/target_curve"/>
+    <remap from="current_pose" to="$(arg name)/current_pose"/>
+    <remap from="steering_report" to="$(arg name)/steering_report"/>
+    <remap from="gear_report" to="$(arg name)/gear_report"/>
+    <!--publisher-->
+    <remap from="qsc_path" to="$(arg name)/qsc_path"/>
+    <remap from="steering_cmd" to="$(arg name)/steering_cmd"/>
+  </node>
+
+  <!--Twist Controller-->
+  <include file="$(find dbw_mkz_twist_controller)/launch/twist_controller.launch">
+    <arg name="vehicle_ns" value="$(arg name)" />
+    <arg name="twist_use_pedals"   default="True"/>
+    <arg name="twist_use_steering" default="False"/>
+    <arg name="use_close_loop_brake_torque" default="False"/>
+  </include>
+
+</launch>

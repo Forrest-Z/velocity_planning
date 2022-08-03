@@ -1,0 +1,19 @@
+<launch>
+
+  <!-- Launch the MKZ in the simulated environment -->
+  <include file="$(find dbw_mkz_gazebo)/launch/dbw_mkz_gazebo.launch" >
+    <arg name="use_camera_control" value="true" />
+    <arg name="world_name" value="$(find dbw_mkz_gazebo)/worlds/empty_world.world" />
+    <arg name="sim_param_file" value="$(find multi_path_generator)/yaml/multi_path_simulation_test.yaml" />
+  </include>
+
+  <!-- Launch the DBW_MKZ_CAN -->
+  <include file="$(find dbw_mkz_can)/launch/dbw.launch">
+    <arg name="live" value="false" />
+    <arg name="load_urdf" value="false" />
+    <arg name="can_ns" value="can_bus_dbw" />
+  </include>
+
+  <include file="$(find multi_path_generator)/launch/multi_path_generator.launch" />
+
+</launch>

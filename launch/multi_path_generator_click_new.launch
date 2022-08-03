@@ -1,0 +1,17 @@
+<launch>
+    <include file="$(find pioneer_transform)/launch/changshu.launch" />
+    <!-- visualizer -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find motion_planning)/rviz/vec_map_local_path.rviz"/>
+
+    <node pkg="motion_planning" type="motion_planning_node" name="motion_planning" output="screen">
+        <param name="odometry_topic" value="/vehicle/odom"/>
+        <param name="movement_topic" value="/vehicle/steering_report"/>
+        <param name="destination_topic" value="/goal_clicked_point"/>
+        <param name="map_service" value="/get_guided_curves_experiment"/>
+        <param name="final_curve_publish_topic" value="/curve_generator"/>
+        <param name="visualization_topic" value="/motion_planning/visualization"/>
+        <param name="current_pose_ignore_orientation" value="false"/>
+        <param name="goal_pose_ignore_orientation" value="true"/>
+        <param name="point_margin" value="0.2"/>
+    </node>
+</launch>

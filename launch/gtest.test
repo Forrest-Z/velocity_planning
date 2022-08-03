@@ -1,0 +1,3 @@
+<launch>
+    <test test-name="Unit_Tests" pkg="motion_planning" type="motion_planning_tests" name="gtest"/>
+</launch>

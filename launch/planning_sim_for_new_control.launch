@@ -1,0 +1,172 @@
+<launch>
+  <arg name="base_odom" default="/vehicle/ground_truth_odom"/>
+  <arg name="center_odom" default="vehicle/center_odom"/>
+  <arg name="length_rear" default="1.4249"/>
+  <arg name="global_frame_id" default="world"/>
+  <arg name="base_frame_id" default="/vehicle/base_footprint"/>
+  <arg name="center_frame_id" default="/vehicle/geometry_center"/>
+  <arg name="namespace" default="vehicle"/>
+  <arg name="odom_topic" default="/vehicle/ground_truth_odom"/>
+  <arg name="linear_velocity" default="5.0"/>
+  <arg name="name" default="vehicle"/>
+  <arg name="gps_topic" default="/vehicle/center_odom" />
+  <arg name="points_topic" default="filtered_gd_points" />
+  <!-- <arg name="vehicle_frame_id" default="vehicle/base_footprint"/> -->
+  <arg name="steering_topic" default="/vehicle/steering_report" />
+  <arg name="imu_topic" default="/vehicle/imu/data_raw" />
+  <arg name="local_odometry_topic" default="local_odometry" /> 
+
+  <!-- Launch simulator and load vehicle model -->
+  <include file="$(find dataspeed_dbw_gazebo)/launch/dataspeed_dbw_gazebo.launch" >
+    <arg name="use_camera_control" value="false" />
+    <arg name="world_name" value="$(find dataspeed_dbw_gazebo)/worlds/empty_world.world" />
+    <!-- <arg name="world_name" value="$(find motion_planning)/worlds/highway_no_transform.world" /> -->
+    <arg name="sim_param_file" value="$(find motion_planning)/yaml/multi_path_simulation_test.yaml" />
+  </include>
+
+  <!-- ROS Driver for ADAS Kit -->
+  <include file="$(find motion_planning)/launch/dbw.launch" >
+    <arg name="live" value="false" />
+    <arg name="load_urdf" value="false" />
+    <arg name="can_ns" value="can_bus_dbw" />
+  </include>
+
+  <include file="$(find pioneer_transform)/launch/changshu.launch" />
+  <!-- visualizer -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find motion_planning)/rviz/vec_map_local_path.rviz"/>
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="vehicle_namespace" args="
+    0 0 0
+    0 0 0 1
+    /base_footprint /vehicle/base_footprint
+  "/>
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="vehicle_geometry_center" args="
+    1.4249 0 0
+    0 0 0 1
+    /vehicle/base_footprint /vehicle/geometry_center
+  "/>
+
+  <!-- Transform the GPS location -->
+  <node pkg="vehicle_center_location" type="vehicle_center_location_node" name="vehicle_center_location">
+    <param name="distance_from_rear_to_center" value="1.4249"/>
+    <param name="center_location" value="$(arg gps_topic)"/>
+    <param name="rear_location" value="$(arg odom_topic)"/>
+  </node>
+
+  <!-- planning input -->
+  <node pkg="planning_input" type="planning_input_node" name="planning_input">
+    <param name="input_localization" value="$(arg gps_topic)"/>
+    <param name="velocity_input" value="/vehicle/steering_report"/>
+  </node>
+
+  <!-- Main node -->
+  <node pkg="motion_planning" type="motion_planning_node" name="motion_planning" output="screen">
+    <!-- 订阅当前中心点定位 -->
+    <param name="odometry_topic" value="/planning_input/localization"/>
+    <!-- 订阅当前速度 -->
+    <param name="movement_topic" value="/planning_input/velocity"/>
+    <!-- 订阅当前曲率 -->
+    <param name="curvature_topic" value="/planning_input/curvature"/>
+    <!-- 订阅控制状态消息-->
+    <param name="control_report_topic" value="/vehicle/core_report" />
+    <!-- 发布开始任务服务 -->
+    <param name="mission_start_service" value="/start_main"/>
+    <!-- 订阅障碍物 -->
+    <param name="obstacle_topic" value="/perception/objects"/>
+    <!-- 订阅地图服务 -->
+    <param name="map_service" value="/get_guided_curves"/>
+    <!-- 订阅障碍物轨迹预测服务 -->
+    <param name="obstacle_trajectory_prediction_service" value="/get_predicted_trajectory"/>
+    <!-- 订阅任务完成服务 -->
+    <param name="destination_reached_service" value="/mission_finished"/>
+    <!-- 订阅A星掉头服务 -->
+    <param name="motion_planning_uncapable_service" value="/require_turn_around"/>
+    <!-- 订阅无法进行规划服务 -->
+    <param name="motion_planning_failed_service" value="/motion_planning_failed"/>
+    <!-- 发布规划轨迹 -->
+    <param name="motion_planning_curve_publish_topic" value="/motion_planning/trajectory"/>
+    <!-- 发布可视化 -->
+    <param name="visualization_topic" value="/motion_planning/visualization"/>
+    <param name="vis_vehicle_topic" value="/motion_planning/vis_vehicle_topic"/>
+    <param name="vis_obstacle_topic" value="/motion_planning/vis_obstacle_topic"/>
+    <param name="vis_collision_topic" value="/motion_planning/vis_collision_topic"/>
+    <param name="vis_multi_curve_topic" value="/motion_planning/vis_multi_curve_topic"/>
+    <param name="vis_occupation_topic" value="/motion_planning/vis_occupation_topic"/>
+    <param name="vis_influence_obstacle_topic" value="/motion_planning/vis_influence_obstacle_topic"/>
+    <!-- 变量，是否需要考虑当前曲率 -->
+    <param name="current_pose_ignore_orientation" value="false"/>
+    <!-- 变量，是否使用红绿灯 -->
+    <param name="traffic_light_usage_flag" value="false"/>
+    <!-- 订阅红绿灯服务 -->
+    <param name="traffic_light_service" value="/traffic_light"/>
+    <!-- 变量，是否停止线停车 -->
+    <param name="not_permanent_traffic_rule_usage_flag" value="false"/>
+    <!-- 变量，机器人宽度 -->
+    <param name="vehicle_width" value="1.864"/>
+    <!-- 变量，机器人长度 -->
+    <param name="vehicle_length" value="4.95"/>
+    <!-- 变量，规划点在车位置比例 -->
+    <param name="vehicle_rear_axis_center_scale" value="0.5"/>
+    <!-- 变量，是否允许超车 -->
+    <param name="is_overtake_enable" value="true" />
+    <!-- 变量，是否使用环形雷达 -->
+    <param name="is_surround_radar_enable" value="false" />
+    <!-- 变量，是否为全自动模式 -->
+    <param name="is_total_autonomous" value="true" />
+    <!-- 变量，是否允许倒车和转向 -->
+    <param name="rotate_and_reverse_enable" value="true" />
+    <!-- 订阅环形雷达 -->
+    <param name="surround_radar_topic" value="/vehicle/surround_report" />
+    <!-- 发布转向灯 -->
+    <param name="turn_signal_publish_topic" value="/vehicle/turn_signal_cmd"/>
+    <!-- 发布强制停车服务 -->
+    <param name="forced_stop_service" value="/motion_planning/forced_stop" />
+    <!-- 发布强制停车 -->
+    <param name="emergency_break_publish_topic" value="/astar_emergency_braking_request" />
+  </node>
+
+  <!-- Plan to Controller Interface Node -->
+  <node pkg="plan_to_control_interface" type="plan_to_control_interface_node" name="plan_to_control_interface" >
+    <param name="final_curve_topic" value="/plan_to_control_interface/trajectory"/>
+    <param name="init_curve_velocity_topic" value="/plan_to_control_interface/planned_velocity"/>
+    <param name="planned_curve_topic" value="/motion_planning/trajectory"/>
+    <param name="odometry_topic" value="/planning_input/localization"/>
+    <param name="movement_topic" value="/planning_input/velocity"/>
+    <!-- 0 is geometry center, and 1 is rear_axis -->
+    <param name="trajectory_mode" value="0"/>
+    <param name="distance_from_rear_to_center" value="1.4249"/>
+  </node>
+  
+  <!-- Turn Light Node -->
+  <!-- <node pkg="turn_light" type="turn_light_node" name="turn_light">
+    <param name="turn_light_cmd_topic" value="/vehicle/turn_signal_cmd"/>
+    <param name="odometry_topic" value="$(arg odom_topic)"/>
+    <param name="map_service" value="/get_guided_curves"/>
+  </node> -->
+
+  <!-- Message Visualization Node -->
+  <node pkg="observe_planning_output" type="observe_planning_output_node" name="observe_planning_output">
+    <param name="odometry_topic" value="/planning_input/localization"/>
+    <param name="curvature_topic" value="/planning_input/curvature"/>
+    <param name="movement_topic" value="/planning_input/velocity"/>
+    <param name="planned_curve_topic" value="/plan_to_control_interface/trajectory"/>
+    <param name="current_curve_topic" value="/observe_planning_output/current_curve"/>
+    <param name="distance_error_topic" value="/observe_planning_output/distance_error"/>
+    <param name="visualization_topic" value="/observe_planning_output/visualization"/>
+    <param name="visualization_frame_id" value="/base_link"/>
+    <param name="visualization_start_position_x" value="-5.0"/>
+    <param name="visualization_start_position_y" value=" 20.0"/>
+  </node>
+
+  <!-- mission start node -->
+  <node pkg="start_mission" type="start_mission_node" name="start_mission">
+      <param name="goal_pose_topic" value="/move_base_simple/goal"/>
+      <param name="goal_set_service" value="/append_goal_pose"/>
+      <param name="mission_start_service" value="/start_main" />
+  </node>
+
+  <!-- Enable drive-by-wire control -->
+  <node pkg="rostopic" type="rostopic" name="enable_dbw" args="pub /vehicle/enable std_msgs/Empty -1"/>
+
+</launch>
