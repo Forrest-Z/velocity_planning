@@ -7,6 +7,8 @@
 
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
+#include <eigen3/Eigen/SparseCore>
+
 
 // 常量整理
 // 重要常量
@@ -152,5 +154,14 @@ static std::vector<std::string> DIC_STATE_NAME = {"STOP", "TURN_LEFT", "TURN_RIG
 
 // 车辆引导方向映射
 static std::map<int, std::string> GUIDE_TYPE_NAME = {{1, "CHANGE_LEFT"}, {2, "KEEP_CENTER"}, {4, "CHANGE_RIGHT"}, {3, "CENTER_LEFT"}, {6, "CENTER_RIGHT"}, {7, "ALL_AVAILABLE"}};
+
+// Initial Hessian matrix for piecewise bezier curves
+static Eigen::Matrix<double, 6, 6> BezierCurveHessianMatrix = (Eigen::Matrix<double, 6, 6>() <<
+        720.0, -1800.0, 1200.0, 0.0, 0.0, -120.0, 
+        -1800.0, 4800.0, -3600.0, 0.0, 600.0, 0.0,
+        1200.0, -3600.0, 3600.0, -1200.0, 0.0, 0.0,
+        0.0, 0.0, -1200.0, 3600.0, -3600.0, 1200.0,
+        0.0, 600.0, 0.0, -3600.0, 4800.0, -1800.0,
+        -120.0, 0.0, 0.0, 1200.0, -1800.0, 720.0).finished();
 
 #endif

@@ -837,3 +837,19 @@ double Tools::safeThetaTransform(double raw_theta) {
     }
     return safe_theta;
 }
+
+// Transform parameters for OOQP
+void Tools::calculateParam(const Eigen::SparseMatrix<double, Eigen::RowMajor>& M, std::vector<int>* irowM, std::vector<int>* jcolM) {
+    Eigen::MatrixXd M_dense = Eigen::MatrixXd(M);
+    std::vector<int> tmp_irowM, tmp_jcolM;
+    for (int i = 0; i < M_dense.rows(); i++) {
+        for (int j = 0; j < M_dense.cols(); j++) {
+            if (M_dense(i, j) != 0.0) {
+                tmp_irowM.emplace_back(i);
+                tmp_jcolM.emplace_back(j);
+            }
+        }
+    }
+    *irowM = tmp_irowM;
+    *jcolM = tmp_jcolM;
+}

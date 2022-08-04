@@ -58,6 +58,7 @@
 #include <thread>
 #include <mutex>
 #include "StGraph.hpp"
+#include "VelocityOptimization.hpp"
 #include "Point.hpp"
 #include "Path.hpp"
 #include "PathGenerator.h"

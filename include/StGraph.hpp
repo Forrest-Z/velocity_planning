@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-04 12:01:50
+ * @LastEditTime: 2022-08-04 14:20:16
  * @Description: s-t graph
  */
 
@@ -118,9 +118,14 @@ class StGraph {
 
     Cube2D<double> gridCubeToRealCube(const Cube2D<int>& grid_cube);
 
-    bool connectCubes(const std::vector<std::vector<Cube2D<double>>>& input_cubes, std::vector<std::vector<Cube2D<double>>>& output_cubes);
+    bool connectCubes(const std::vector<std::vector<Cube2D<double>>>& input_cubes, std::vector<std::vector<Cube2D<double>>>* output_cubes);
 
-    bool isCubesConnected(const Cube2D<int>& cube_1, const Cube2D<int>& cube_2);
+    bool isCubesConnected(const Cube2D<double>& cube_1, const Cube2D<double>& cube_2);
+
+    void dfsConnectCubes(const std::vector<std::vector<Cube2D<double>>>& input_cubes, int layer_index, std::vector<Cube2D<double>>& cube_path);
+
+    bool runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths);
+
 
     GridMap2D* grid_map_2D_{nullptr};
     PathPlanningUtilities::Curve path_;
@@ -128,16 +133,11 @@ class StGraph {
     double start_velocity_{0.0};
     Param param_;
 
+    std::vector<std::vector<Cube2D<double>>> connected_cubes_;
+
 };
 
-class VelocityPlanner {
- public:
-    VelocityPlanner(DecisionMaking::StandardState* current_state);
-    ~VelocityPlanner();
 
-    StGraph* st_graph_{nullptr};
-    DecisionMaking::StandardState* planning_state_{nullptr};
-};
 
 
 

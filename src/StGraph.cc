@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-04 12:06:44
+ * @LastEditTime: 2022-08-04 14:20:14
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -354,48 +354,78 @@ bool StGraph::generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes) {
     return true;
 }
 
-bool StGraph::isCubesConnected(const Cube2D<int>& cube_1, const Cube2D<int>& cube_2) {
+bool StGraph::isCubesConnected(const Cube2D<double>& cube_1, const Cube2D<double>& cube_2) {
     // DEBUG
-
     // END DEBUG
-    
+
     if (cube_1.s_start_ > cube_2.s_start_ && cube_1.s_start_ < cube_2.s_end_) return true;
     if (cube_1.s_end_ > cube_2.s_start_ && cube_1.s_end_ < cube_2.s_end_) return true;
     return false;
 
 }
 
-bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input_cubes, std::vector<std::vector<Cube2D<double>>>& output_cubes) {
+bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input_cubes, std::vector<std::vector<Cube2D<double>>>* output_cubes) {
+    std::vector<Cube2D<double>> cube_path;
+    dfsConnectCubes(input_cubes, 0, cube_path);
 
-}
-
-VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
-    planning_state_ = current_state;
-
-    // find nearest point
-    int current_position_index_in_trajectory = Tools::findNearestPositionIndexInCurve(current_state->getTotalTrajectory(), current_state->getVehicleStartState().position_, current_state->getVehicleCurrentPositionIndexInTrajectory());
-
-    // Declare parameters
-    StGraph::Param st_graph_param;
-    st_graph_param.velocity_max = current_state->getVelocityLimitationMax();
+    if (connected_cubes_.size() > 0) {
+        *output_cubes = connected_cubes_;
+        connected_cubes_.clear();
+        return true;
+    } else {
+        return false;
+    }
     
-    // Cut path segment
-    PathPlanningUtilities::Curve total_curve = current_state->getTotalTrajectory();
-    int total_length = current_state->getTrajectoryLength();
-    int cut_end_point = std::min(total_length - current_position_index_in_trajectory, static_cast<int>(st_graph_param.s_max / LANE_GAP_DISTANCE));
-    st_graph_param.s_max = (cut_end_point - current_position_index_in_trajectory) * LANE_GAP_DISTANCE;
-    PathPlanningUtilities::Curve velocity_planning_curve{total_curve.begin() + current_position_index_in_trajectory, total_curve.begin() + cut_end_point};
 
-    // Get vehicle current movement
-    PathPlanningUtilities::VehicleMovementState vehicle_movement_state = current_state->getVehicleCurrentMovement();
+    
+}
 
-    // Construct s-t graph
-    st_graph_ = new StGraph(velocity_planning_curve, st_graph_param, vehicle_movement_state.velocity_);
+void StGraph::dfsConnectCubes(const std::vector<std::vector<Cube2D<double>>>& input_cubes, int layer_index, std::vector<Cube2D<double>>& cube_path) {
+    if (layer_index == input_cubes.size()) {
+        connected_cubes_.emplace_back(cube_path);
+        return;
+    }
+    if (layer_index == 0 && cube_path.size() == 0) {
+        cube_path.emplace_back(input_cubes[0][0]);
+        dfsConnectCubes(input_cubes, layer_index + 1, cube_path);
+        cube_path.pop_back();
+    } else {
+        Cube2D<double> last_cube = cube_path.back();
+        for (int i = 0; i < input_cubes[layer_index].size(); i++) {
+            if (isCubesConnected(last_cube, input_cubes[layer_index][i])) {
+                cube_path.emplace_back(input_cubes[layer_index][i]);
+                dfsConnectCubes(input_cubes, layer_index + 1, cube_path);
+                cube_path.pop_back();
+            }
+        }
+    }
+}
 
+bool StGraph::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths) {
+    // ~Stage I: add obstacles
+    loadObstacles(obstacles);
+
+    // ~Stage II: generate cubes
+    std::vector<std::vector<Cube2D<double>>> cubes;
+    bool is_generated_success = generateCubes(&cubes);
+    if (!is_generated_success) {
+        return false;
+    }
+
+    // ~Stage III: generate cube paths
+    std::vector<std::vector<Cube2D<double>>> connected_cube_paths;
+    bool is_connected_success = connectCubes(cubes, &connected_cube_paths);
+    if (!is_connected_success) {
+        return false;
+    }
+
+    *cube_paths = connected_cube_paths;
+    return true;
 
 }
 
-VelocityPlanner::~VelocityPlanner() = default;
+
+
 
 
 
