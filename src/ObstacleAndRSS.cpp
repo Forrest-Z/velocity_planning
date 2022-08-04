@@ -743,6 +743,42 @@ bool DecisionMaking::RSS::occupationInteractionJudgement(const OccupationArea &s
     return false;
 }
 
+// 判断两个占用区域是否产生相交, true表示相交，false表示不相交
+bool DecisionMaking::RSS::occupationInteractionJudgement(const OccupationArea &subvehicle_occupation_area, const OccupationArea &obstacle_occupation_area, int* subvehicle_interact_start_index, int* subvehicle_interact_end_index, int* obstacle_start_interact_index, int* obstacle_end_interact_index) {
+    int cur_ego_vehicle_start_interact_index = -1;
+    int cur_ego_vehicle_end_interact_index = -1;
+    int cur_obstacle_start_interact_index = -1;
+    int cur_obstacle_end_interact_index = -1;
+    bool is_collision = false;
+    // clock_t start_calc_time = clock();
+    // 遍历占用区域的矩形框，判断其是否重叠
+    for (size_t i = 0; i < subvehicle_occupation_area.getSampledOccupationArea().size(); i++) {
+        for (size_t j = 0; j < obstacle_occupation_area.getSampledOccupationArea().size(); j++) {
+            if (Tools::isRectangleOverlap(subvehicle_occupation_area.getSampledOccupationArea()[i], obstacle_occupation_area.getSampledOccupationArea()[j], RECTANGLE_INTERACTION_EXPAND_RATION, RECTANGLE_INTERACTION_EXPAND_RATION)) {
+                // 此处得到的是采样后的下标，还要转化为采样前的下标
+                // *subvehicle_interact_index = i;
+                // *obstacle_interact_index = j;
+                // 转化为采样前的下标
+                int this_subvehicle_interact_index = subvehicle_occupation_area.getSampledOccupationAreaBijectionIndex(i);
+                int this_obstacle_interact_index = obstacle_occupation_area.getSampledOccupationAreaBijectionIndex(j);
+
+                if (cur_ego_vehicle_start_interact_index == -1) cur_ego_vehicle_start_interact_index = this_subvehicle_interact_index;
+                if (cur_obstacle_start_interact_index == -1) cur_obstacle_start_interact_index = this_obstacle_interact_index;
+                cur_ego_vehicle_end_interact_index = std::max(this_subvehicle_interact_index, cur_ego_vehicle_end_interact_index);
+                cur_obstacle_end_interact_index = std::max(this_obstacle_interact_index, cur_obstacle_end_interact_index);
+                is_collision = true;
+            }
+        }
+    }
+    // clock_t end_calc_time = clock();
+    // LOG(INFO) << "轨迹相交判定所花时间为" << static_cast<double>(end_calc_time - start_calc_time) * 1000.0 / CLOCKS_PER_SEC << "ms，计算次数为" << subvehicle_occupation_area.getSampledOccupationArea().size() * obstacle_occupation_area.getSampledOccupationArea().size() << "次";
+    *subvehicle_interact_start_index = cur_ego_vehicle_start_interact_index;
+    *subvehicle_interact_end_index = cur_ego_vehicle_end_interact_index;
+    *obstacle_start_interact_index = cur_obstacle_start_interact_index;
+    *obstacle_end_interact_index = cur_obstacle_end_interact_index;
+    return is_collision;
+}
+
 // 判断状态是否安全（已获得expected acceleration的状态）
 bool DecisionMaking::RSS::stateSafetyJudgement(const StandardState &judge_state, const std::vector<Obstacle> &obstacles) {
     double test_acceleration = judge_state.getVehicleDynamicPlanningExpectedAcceleration();

@@ -48,6 +48,11 @@ void DecisionMaking::SubVehicle::checkStates() {
     this->velocityPlanningForState(&(this->states_set_[StateNames::TURN_LEFT]), obstacles, true);
     this->velocityPlanningForState(&(this->states_set_[StateNames::TURN_RIGHT]), obstacles, true);
 
+    // DEBUG
+    VelocityPlanning::StGraph::Param param;
+    VelocityPlanning::StGraph st_graph = VelocityPlanning::StGraph(states_set_[StateNames::FORWARD].getTotalTrajectory(), param, 5.0);
+    // END DEBUG
+
     // 设置三大状态都不可行(for debug)
     // this->states_set_[StateNames::FORWARD].disable();
     // this->states_set_[StateNames::TURN_LEFT].disable();
