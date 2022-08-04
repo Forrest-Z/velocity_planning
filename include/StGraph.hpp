@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-04 10:58:50
+ * @LastEditTime: 2022-08-04 12:01:50
  * @Description: s-t graph
  */
 
@@ -47,6 +47,7 @@ class GridMap2D {
         OCCUPIED = 0,
         HALF_OCCUPIED = 123,
         FREE = 255,
+        UNKNOWN = 999,
     };
 
     GridMap2D(int x_max, int y_max);
@@ -56,7 +57,7 @@ class GridMap2D {
 
     void fillObstacleBannedArea(const std::vector<Eigen::Vector2i>& vertice);
 
-    std::vector<Cube2D<int>> expandSingleColumn(const int& grid_t_start, const int& grid_t_end);
+    bool expandSingleColumn(const int& grid_t_start, const int& grid_t_end, const int& grid_s_start, std::vector<Cube2D<int>>* cubes, int* real_s_start);
 
     std::vector<cv::Point> eigenToCvPoint(const std::vector<Eigen::Vector2i>& points);
 
@@ -111,8 +112,15 @@ class StGraph {
 
     void loadAccelerationLimitation();
 
-    std::vector<std::vector<Cube2D<double>>> generateCubes();
+    bool generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes);
 
+    std::vector<Cube2D<double>> gridCubesToRealCubes(const std::vector<Cube2D<int>>& grid_cubes);
+
+    Cube2D<double> gridCubeToRealCube(const Cube2D<int>& grid_cube);
+
+    bool connectCubes(const std::vector<std::vector<Cube2D<double>>>& input_cubes, std::vector<std::vector<Cube2D<double>>>& output_cubes);
+
+    bool isCubesConnected(const Cube2D<int>& cube_1, const Cube2D<int>& cube_2);
 
     GridMap2D* grid_map_2D_{nullptr};
     PathPlanningUtilities::Curve path_;

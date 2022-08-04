@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-04 11:01:32
+ * @LastEditTime: 2022-08-04 12:06:44
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -44,15 +44,93 @@ void GridMap2D::fillObstacleBannedArea(const std::vector<Eigen::Vector2i>& verti
     cv::fillPoly(mat_, contours, cv::Scalar(ValType::HALF_OCCUPIED), 8);
 }
 
-std::vector<Cube2D<int>> GridMap2D::expandSingleColumn(const int& grid_t_start, const int& grid_t_end) {
-    std::vector<Cube2D<int>> cubes;
+bool GridMap2D::expandSingleColumn(const int& grid_t_start, const int& grid_t_end, const int& grid_s_start, std::vector<Cube2D<int>>* cubes, int* real_s_start) {
+    std::vector<Cube2D<int>> calculated_cubes;
+
     // Get grid s start
-    
+    int cur_s_start = grid_s_start;
+    int max_s_grid = mat_.rows;
+    for (; cur_s_start < max_s_grid; cur_s_start++) {
+        ValType collision_type = getOccupiedState(grid_t_start, grid_t_end, cur_s_start);
+        if (collision_type == ValType::OCCUPIED) continue;
+        if (collision_type == ValType::HALF_OCCUPIED) continue;
+        if (collision_type == ValType::FREE) break;
+    }
+
+    // Judge failed expansion
+    if (cur_s_start >= max_s_grid) return false;
+
+    // Update real s start
+    *real_s_start = cur_s_start;
+
+    // Start expanding
+    int cur_s_grid = cur_s_start;
+    for (; cur_s_grid < max_s_grid; cur_s_grid++) {
+        ValType collision_type = getOccupiedState(grid_t_start, grid_t_end, cur_s_grid);
+        if (collision_type == ValType::OCCUPIED) {
+            // Complete the last round
+            if (cur_s_grid > cur_s_start) {
+                Cube2D<int> cube = Cube2D<int>(grid_t_start, grid_t_end, cur_s_grid, cur_s_start);
+                calculated_cubes.emplace_back(cube);
+            }
+            break;
+        } else if (collision_type == ValType::HALF_OCCUPIED) {
+            // Complete the medium round
+            if (cur_s_grid > cur_s_start) {
+                Cube2D<int> cube = Cube2D<int>(grid_t_start, grid_t_end, cur_s_grid, cur_s_start);
+                calculated_cubes.emplace_back(cube);
+            }
+
+            // Update to next start index
+            bool is_adjacent_to_occupied = false;
+            for (; cur_s_grid < max_s_grid; cur_s_grid++) {
+                ValType cur_collision_type = getOccupiedState(grid_t_start, grid_t_end, cur_s_grid);
+                if (cur_collision_type == ValType::HALF_OCCUPIED) {
+                    continue;
+                } else if (cur_collision_type == ValType::OCCUPIED) {
+                    is_adjacent_to_occupied = true;
+                    break;
+                } else if (cur_collision_type == ValType::FREE) {
+                    // Get next start index
+                    cur_s_start = cur_s_grid;
+                    break;
+                }
+            }
+            if (is_adjacent_to_occupied) {
+                // No free space
+                break;
+            }
+
+        } else if (collision_type == ValType::FREE) {
+            continue;
+        }
+    }
+
+    *cubes = calculated_cubes;
+    return true;
+
     
 }
 
-GridMap2D::ValType GridMap2D::getOccupiedState(const int& grid_t_start, const int& grid_t_end, const int& s) {
-    
+GridMap2D::ValType GridMap2D::getOccupiedState(const int& grid_t_start, const int& grid_t_end, const int& grid_s) {
+    // Iterate points in range
+    ValType res_collision_type = ValType::FREE;
+    for (int i = grid_t_start; i <= grid_t_end; i++) {
+        uchar pixel_value = mat_.ptr<uchar>(grid_s)[i];
+        ValType cur_collision_type = (ValType)static_cast<int>(pixel_value);
+        if (cur_collision_type == ValType::OCCUPIED) {
+            res_collision_type = cur_collision_type;
+            break;
+        } else if (cur_collision_type == ValType::HALF_OCCUPIED) {
+            res_collision_type = cur_collision_type;
+        } else if (cur_collision_type == ValType::FREE) {
+            // Do nothing
+            // Maybe some logic is need here
+        }
+    }
+
+    return res_collision_type;
+
 }
 
 
@@ -119,6 +197,24 @@ std::vector<Eigen::Vector2d> StGraph::gridPossToRealValues(const std::vector<Eig
     }
     return real_values;
 }
+
+std::vector<Cube2D<double>> StGraph::gridCubesToRealCubes(const std::vector<Cube2D<int>>& grid_cubes) {
+    std::vector<Cube2D<double>> cubes;
+    for (int i = 0; i < grid_cubes.size(); i++) {
+        cubes.emplace_back(gridCubeToRealCube(grid_cubes[i]));
+    }
+    return cubes;
+}
+
+Cube2D<double> StGraph::gridCubeToRealCube(const Cube2D<int>& grid_cube) {
+    double t_start_real = grid_cube.t_start_ * param_.t_resolution;
+    double t_end_real = grid_cube.t_end_ * param_.t_resolution;
+    double s_start_real = grid_cube.s_start_ * param_.s_resolution;
+    double s_end_real = grid_cube.s_end_ * param_.s_resolution;
+    Cube2D<double> cube_real = Cube2D<double>(t_start_real, t_end_real, s_start_real, s_end_real);
+    return cube_real;
+}
+
 
 
 void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
@@ -222,8 +318,8 @@ void StGraph::loadAccelerationLimitation() {
     grid_map_2D_->fillAccBannedArea(upper_boundary_grid_positions);
 }
 
-std::vector<std::vector<Cube2D<double>>> StGraph::generateCubes() {
-    std::vector<std::vector<Cube2D<double>>> cubes;
+bool StGraph::generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes) {
+    std::vector<std::vector<Cube2D<double>>> calculated_cubes;
     
     // Calculate lateral cube width for each cube
     double t_lateral = param_.t_max / param_.lateral_segement_number;
@@ -237,6 +333,7 @@ std::vector<std::vector<Cube2D<double>>> StGraph::generateCubes() {
 
     // ~Stage II: iterative expand the followed cubes
     // TODO: try multithreading here
+    int s_start = 0;
     for (int i = 1; i < param_.lateral_segement_number; i++) {
         // Calculate the t boundary for this expansion
         double cur_t_start = i * t_lateral;
@@ -244,12 +341,32 @@ std::vector<std::vector<Cube2D<double>>> StGraph::generateCubes() {
         int cur_t_start_grid = static_cast<int>(cur_t_start / param_.t_resolution);
         int cur_t_end_grid = static_cast<int>(cur_t_end / param_.t_resolution);
 
+        // Get grid cubes in this column
+        std::vector<Cube2D<int>> cur_cubes;
+        bool is_expansion_success = grid_map_2D_->expandSingleColumn(cur_t_start_grid, cur_t_start_grid, s_start, &cur_cubes, &s_start);
+        if (!is_expansion_success) {
+            return false;
+        }
+        calculated_cubes.emplace_back(gridCubesToRealCubes(cur_cubes));
     }
 
-    return cubes;
-    
+    *cubes = calculated_cubes;
+    return true;
+}
 
+bool StGraph::isCubesConnected(const Cube2D<int>& cube_1, const Cube2D<int>& cube_2) {
+    // DEBUG
+
+    // END DEBUG
     
+    if (cube_1.s_start_ > cube_2.s_start_ && cube_1.s_start_ < cube_2.s_end_) return true;
+    if (cube_1.s_end_ > cube_2.s_start_ && cube_1.s_end_ < cube_2.s_end_) return true;
+    return false;
+
+}
+
+bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input_cubes, std::vector<std::vector<Cube2D<double>>>& output_cubes) {
+
 }
 
 VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
