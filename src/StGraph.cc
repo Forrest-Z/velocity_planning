@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-06 21:59:32
+ * @LastEditTime: 2022-08-06 22:15:48
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -471,10 +471,10 @@ bool StGraph::isCubesConnected(const Cube2D<double>& cube_1, const Cube2D<double
     // DEBUG
     // END DEBUG
 
-    if (cube_1.s_start_ > cube_2.s_start_ && cube_1.s_start_ < cube_2.s_end_) return true;
-    if (cube_1.s_end_ > cube_2.s_start_ && cube_1.s_end_ < cube_2.s_end_) return true;
-    if (isCubesConnected(cube_2, cube_1)) return true;
-    return false;
+    if (cube_1.s_start_ > cube_2.s_end_ || cube_2.s_start_ > cube_1.s_end_) {
+        return false;
+    }
+    return true;
 
 }
 
@@ -497,7 +497,7 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
                 connected_cubes_[i][j].print();
             }
         }
-        // visualization(calculated_grid_cubes_columns_);
+        visualization(calculated_grid_cubes_columns_);
         // END DEBUG
 
 
