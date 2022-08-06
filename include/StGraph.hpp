@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-04 14:20:16
+ * @LastEditTime: 2022-08-06 21:19:17
  * @Description: s-t graph
  */
 
@@ -23,7 +23,7 @@
 namespace VelocityPlanning {
 
 template<typename T>
-class Cube2D {
+class  Cube2D {
  public:
     Cube2D() = default;
     Cube2D(const T& t_start, const T& t_end, const T& s_start, const T& s_end) {
@@ -33,6 +33,10 @@ class Cube2D {
         s_end_ = s_end;
     }
     ~Cube2D() = default;
+
+    void print() {
+        std::cout << "t start: " << t_start_ << ", t end: " << t_end_ << ", s start: " << s_start_ << ", s end: " << s_end_ << std::endl; 
+    }
 
     T t_start_;
     T t_end_;
@@ -47,6 +51,7 @@ class GridMap2D {
         OCCUPIED = 0,
         HALF_OCCUPIED = 123,
         FREE = 255,
+        CUBE_BOUNDARY = 66,
         UNKNOWN = 999,
     };
 
@@ -63,8 +68,17 @@ class GridMap2D {
 
     ValType getOccupiedState(const int& grid_t_start, const int& grid_t_end, const int& s);
 
+    void addCubeVisualization(const Cube2D<int>& grid_cube);
+
+    void addCubesVisualization(const std::vector<Cube2D<int>>& grid_cubes);
+
     // DEBUG
     void visualization();
+
+    void visualization(const std::vector<Cube2D<int>>& cubes);
+
+    void visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths);
+    // END DEBUG
 
     cv::Mat mat_;
 };
@@ -83,7 +97,7 @@ class StGraph {
         double acc_max = 1.5;
         double acc_min = -2.0;
         int acc_limit_t_sampled_points_num = 10;
-        int lateral_segement_number = 20;
+        int lateral_segement_number = 10;
         double velocity_max = 6.0;
     };
 
@@ -126,6 +140,10 @@ class StGraph {
 
     bool runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths);
 
+    void visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths);
+
+    void visualization();
+
 
     GridMap2D* grid_map_2D_{nullptr};
     PathPlanningUtilities::Curve path_;
@@ -134,6 +152,7 @@ class StGraph {
     Param param_;
 
     std::vector<std::vector<Cube2D<double>>> connected_cubes_;
+    std::vector<std::vector<Cube2D<int>>> calculated_grid_cubes_columns_;
 
 };
 

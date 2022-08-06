@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-04 14:20:14
+ * @LastEditTime: 2022-08-06 21:59:32
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -28,6 +28,20 @@ std::vector<cv::Point> GridMap2D::eigenToCvPoint(const std::vector<Eigen::Vector
 void GridMap2D::visualization() {
     cv::imshow("Grid map", mat_);
     cv::waitKey(0);
+}
+
+void GridMap2D::visualization(const std::vector<Cube2D<int>>& cubes) {
+    addCubesVisualization(cubes);
+    cv::imshow("Grid map", mat_);
+    cv::waitKey();
+}
+
+void GridMap2D::visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths) {
+    for (auto const& cubes : cube_paths) {
+        addCubesVisualization(cubes);
+    }
+    cv::imshow("Grid map", mat_);
+    cv::waitKey();
 }
 
 void GridMap2D::fillAccBannedArea(const std::vector<Eigen::Vector2i>& vertice) {
@@ -58,8 +72,14 @@ bool GridMap2D::expandSingleColumn(const int& grid_t_start, const int& grid_t_en
     }
 
     // Judge failed expansion
-    if (cur_s_start >= max_s_grid) return false;
+    if (cur_s_start >= max_s_grid) {
 
+        // DEBUG
+        std::cout << "cur s start: " << cur_s_start << ", max s grid: " << max_s_grid << std::endl;
+        // END DEBUG
+
+        return false;
+    }
     // Update real s start
     *real_s_start = cur_s_start;
 
@@ -70,14 +90,14 @@ bool GridMap2D::expandSingleColumn(const int& grid_t_start, const int& grid_t_en
         if (collision_type == ValType::OCCUPIED) {
             // Complete the last round
             if (cur_s_grid > cur_s_start) {
-                Cube2D<int> cube = Cube2D<int>(grid_t_start, grid_t_end, cur_s_grid, cur_s_start);
+                Cube2D<int> cube = Cube2D<int>(grid_t_start, grid_t_end, cur_s_start, cur_s_grid);
                 calculated_cubes.emplace_back(cube);
             }
             break;
         } else if (collision_type == ValType::HALF_OCCUPIED) {
             // Complete the medium round
             if (cur_s_grid > cur_s_start) {
-                Cube2D<int> cube = Cube2D<int>(grid_t_start, grid_t_end, cur_s_grid, cur_s_start);
+                Cube2D<int> cube = Cube2D<int>(grid_t_start, grid_t_end, cur_s_start, cur_s_grid);
                 calculated_cubes.emplace_back(cube);
             }
 
@@ -133,6 +153,20 @@ GridMap2D::ValType GridMap2D::getOccupiedState(const int& grid_t_start, const in
 
 }
 
+void GridMap2D::addCubeVisualization(const Cube2D<int>& grid_cube) {
+    std::vector<cv::Point> contour = {cv::Point(grid_cube.t_start_, grid_cube.s_start_), cv::Point(grid_cube.t_start_, grid_cube.s_end_), cv::Point(grid_cube.t_end_, grid_cube.s_end_), cv::Point(grid_cube.t_end_, grid_cube.s_start_)};
+    
+    std::vector<std::vector<cv::Point>> contours;
+    contours.emplace_back(contour);
+    cv::polylines(mat_, contours, true, cv::Scalar(ValType::CUBE_BOUNDARY), 2);
+}
+
+void GridMap2D::addCubesVisualization(const std::vector<Cube2D<int>>& grid_cubes) {
+    for (const auto& cube : grid_cubes) {
+        addCubeVisualization(cube);
+    }
+}
+
 
 
 
@@ -150,12 +184,9 @@ StGraph::StGraph(const PathPlanningUtilities::Curve& path, const Param& param, c
     int y_max = std::round(param.s_max / param.s_resolution);
     grid_map_2D_ = new GridMap2D(x_max, y_max);
 
-    // Load origin acceleration limitation
-    loadAccelerationLimitation();
-
-    // DEBUG
-    grid_map_2D_->visualization();
-    // END DEBUG
+    // // DEBUG
+    // grid_map_2D_->visualization();
+    // // END DEBUG
 
 
   
@@ -243,15 +274,43 @@ void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
         double s_start = ego_vehicle_start_collision_index * LANE_GAP_DISTANCE;
         double s_end = ego_vehicle_end_collision_index * LANE_GAP_DISTANCE;
 
+        // // DEBUG
+        // std::cout << "t start: " << t_start << std::endl;
+        // std::cout << "t end: " << t_end << std::endl;
+        // std::cout << "s start: " << s_start << std::endl;
+        // std::cout << "s end: " << s_end << std::endl;
+        // // END DEBUG    
+
         // Calculate the projected length of the obstacle to the path of the ego lane
         double angle_diff = obstacle.getPredictedTrajectory(i)[cur_obs_start_collision_index].theta_ - path_[ego_vehicle_start_collision_index].theta_;
-        double projected_length = std::max(obstacle.getObstacleLength() * fabs(tan(angle_diff)), obstacle.getObstacleWidth() * fabs(tan(angle_diff + M_PI * 0.5)));
+        double projected_length = std::max(obstacle.getObstacleLength() * fabs(cos(angle_diff)), obstacle.getObstacleWidth() * fabs(cos(angle_diff + M_PI * 0.5)));
+
+        // // DEBUG
+        // std::cout << "angle diff: " << angle_diff << std::endl;
+        // std::cout << "projected length: " << projected_length << std::endl;
+        // std::cout << obstacle.getObstacleLength() * fabs(tan(angle_diff)) << std::endl;
+        // std::cout << obstacle.getObstacleWidth() * fabs(tan(angle_diff + M_PI * 0.5)) << std::endl;
+        // std::cout << obstacle.getObstacleWidth() << std::endl;
+        // std::cout << fabs(tan(angle_diff + M_PI * 0.5)) << std::endl;
+        // // END DEBUG
 
         // Get four vertice
         std::vector<Eigen::Vector2d> real_vertice = {{t_start, s_start}, {t_start, s_start + projected_length}, {t_end, s_end}, {t_end, s_end - projected_length}};
 
+        // // DEBUG
+        // for (int i = 0; i < 4; i++) {
+        //     std::cout << real_vertice[i] << std::endl;
+        // }
+        // // END DEBUG
+
         // Convert
         std::vector<Eigen::Vector2i> grid_positions = realValuesToGridPoss(real_vertice);
+
+        // // DEBUG
+        // for (int i = 0; i < 4; i++) {
+        //     std::cout << grid_positions[i] << std::endl;
+        // }
+        // // END DEBUG
 
         // Picture the banned area to grid map
         grid_map_2D_->fillObstacleBannedArea(grid_positions);
@@ -264,6 +323,7 @@ void StGraph::loadObstacles(const std::vector<DecisionMaking::Obstacle>& obstacl
         loadObstacle(obs);
     }
 }
+
 
 void StGraph::loadAccelerationLimitation() {
     // Load origin acceleration limitation to the graph
@@ -321,34 +381,87 @@ void StGraph::loadAccelerationLimitation() {
 bool StGraph::generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes) {
     std::vector<std::vector<Cube2D<double>>> calculated_cubes;
     
+    // DEBUG
+    std::vector<std::vector<Cube2D<int>>> calculated_grid_cubes_columns;
+    // END DEBUG
+    
     // Calculate lateral cube width for each cube
     double t_lateral = param_.t_max / param_.lateral_segement_number;
 
     // Expand cubes
-    // ~Stage I: special process for the first cube
+    // ~Stage I: special process for the first cube and second cube
     std::vector<Cube2D<double>> first_cube;
     double first_cube_s_max = start_velocity_ * t_lateral + 0.5 * param_.acc_max * pow(t_lateral, 2);
     Cube2D<double> first_cur_cube = Cube2D<double>(0.0, t_lateral, 0.0, first_cube_s_max);
+
+    // // DEBUG
+    // std::cout << "First cube information" << std::endl;
+    // first_cur_cube.print();
+    // // END DEBUG
+
     first_cube.emplace_back(first_cur_cube);
+    calculated_cubes.emplace_back(first_cube);
+
+    std::vector<Cube2D<double>> second_cube;
+    double second_cube_s_max = start_velocity_ * 2.0 * t_lateral + 0.5 * param_.acc_max * pow(2.0 * t_lateral, 2);
+    double second_cube_s_min = std::min(start_velocity_ * 2.0 * t_lateral + 0.5 * param_.acc_min * pow(2.0, t_lateral), 0.0);
+    Cube2D<double> second_cur_cube = Cube2D<double>(t_lateral, 2.0 * t_lateral, second_cube_s_min, second_cube_s_max);
+    second_cube.emplace_back(second_cur_cube);
+    calculated_cubes.emplace_back(second_cube);
+
 
     // ~Stage II: iterative expand the followed cubes
     // TODO: try multithreading here
     int s_start = 0;
-    for (int i = 1; i < param_.lateral_segement_number; i++) {
+    for (int i = 2; i < param_.lateral_segement_number; i++) {
         // Calculate the t boundary for this expansion
         double cur_t_start = i * t_lateral;
         double cur_t_end = (i + 1) * t_lateral;
         int cur_t_start_grid = static_cast<int>(cur_t_start / param_.t_resolution);
-        int cur_t_end_grid = static_cast<int>(cur_t_end / param_.t_resolution);
+        int cur_t_end_grid = static_cast<int>(cur_t_end / param_.t_resolution) - 1;
+
+        // // DEBUG
+        // std::cout << "cur t start grid: " << cur_t_start_grid << std::endl;
+        // std::cout << "cur t end grid: " << cur_t_end_grid << std::endl;
+        // std::cout << "cur s start: " << s_start << std::endl; 
+        // // END DEBUG
 
         // Get grid cubes in this column
         std::vector<Cube2D<int>> cur_cubes;
-        bool is_expansion_success = grid_map_2D_->expandSingleColumn(cur_t_start_grid, cur_t_start_grid, s_start, &cur_cubes, &s_start);
+        bool is_expansion_success = grid_map_2D_->expandSingleColumn(cur_t_start_grid, cur_t_end_grid, s_start, &cur_cubes, &s_start);
         if (!is_expansion_success) {
+
+            // // DEBUG
+            // std::cout << "col num: " << i << std::endl;
+            // // END DEBUG
+
             return false;
         }
+
+        // // DEBUG
+        // std::cout << "i: " << i << ", cubes size: " <<  cur_cubes.size() << std::endl;
+        // // END DEBUG
+
+        calculated_grid_cubes_columns.emplace_back(cur_cubes);
+
         calculated_cubes.emplace_back(gridCubesToRealCubes(cur_cubes));
     }
+
+    // // DEBNG
+    // for (int i = 0; i < calculated_grid_cubes_columns.size(); i++) {
+    //     for (int j = 0; j < calculated_grid_cubes_columns[i].size(); j++) {
+    //         Cube2D<int> this_grid_cube = calculated_grid_cubes_columns[i][j];
+    //         std::cout << "Cols: " << i << ", num: " << j << std::endl;
+    //         this_grid_cube.print();
+    //     }
+    // }
+    // // END DEBUG
+
+    // // DEBUG
+    // // Visualization 
+    calculated_grid_cubes_columns_ = calculated_grid_cubes_columns;
+    // visualization(calculated_grid_cubes_columns);
+    // END DEBUG
 
     *cubes = calculated_cubes;
     return true;
@@ -360,6 +473,7 @@ bool StGraph::isCubesConnected(const Cube2D<double>& cube_1, const Cube2D<double
 
     if (cube_1.s_start_ > cube_2.s_start_ && cube_1.s_start_ < cube_2.s_end_) return true;
     if (cube_1.s_end_ > cube_2.s_start_ && cube_1.s_end_ < cube_2.s_end_) return true;
+    if (isCubesConnected(cube_2, cube_1)) return true;
     return false;
 
 }
@@ -368,11 +482,34 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
     std::vector<Cube2D<double>> cube_path;
     dfsConnectCubes(input_cubes, 0, cube_path);
 
+    // DEBUG
+    std::cout << "dfs search complete" <<std::endl; 
+    // END DEBUG
+
     if (connected_cubes_.size() > 0) {
         *output_cubes = connected_cubes_;
+
+        // DEBUG
+        for (int i = 0; i < connected_cubes_.size(); i++) {
+            std::cout << "path " << i << std::endl;
+            for (int j = 0; j < connected_cubes_[i].size(); j++) {
+                std::cout << "cube " << j << std::endl;
+                connected_cubes_[i][j].print();
+            }
+        }
+        // visualization(calculated_grid_cubes_columns_);
+        // END DEBUG
+
+
+        calculated_grid_cubes_columns_.clear();
         connected_cubes_.clear();
         return true;
     } else {
+
+        // DEBUG
+        std::cout << "Connection failed." << std::endl;
+        // END DEBUG
+
         return false;
     }
     
@@ -381,6 +518,11 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
 }
 
 void StGraph::dfsConnectCubes(const std::vector<std::vector<Cube2D<double>>>& input_cubes, int layer_index, std::vector<Cube2D<double>>& cube_path) {
+
+    // DEBUG
+    std::cout << "layer index: " << layer_index << std::endl;
+    // END DEBUG
+
     if (layer_index == input_cubes.size()) {
         connected_cubes_.emplace_back(cube_path);
         return;
@@ -405,6 +547,9 @@ bool StGraph::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, st
     // ~Stage I: add obstacles
     loadObstacles(obstacles);
 
+    // ~Stage: II: add acc limitation
+    loadAccelerationLimitation();
+
     // ~Stage II: generate cubes
     std::vector<std::vector<Cube2D<double>>> cubes;
     bool is_generated_success = generateCubes(&cubes);
@@ -424,6 +569,14 @@ bool StGraph::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, st
 
 }
 
+void StGraph::visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths) {
+    grid_map_2D_->visualization(cube_paths);
+}
+
+
+void StGraph::visualization() {
+    grid_map_2D_->visualization();
+}
 
 
 

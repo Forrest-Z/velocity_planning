@@ -51,6 +51,23 @@ void DecisionMaking::SubVehicle::checkStates() {
     // DEBUG
     VelocityPlanning::StGraph::Param param;
     VelocityPlanning::StGraph st_graph = VelocityPlanning::StGraph(states_set_[StateNames::FORWARD].getTotalTrajectory(), param, 5.0);
+    st_graph.loadObstacles(obstacles);
+    st_graph.loadAccelerationLimitation();
+    // st_graph.visualization();
+
+    std::vector<std::vector<VelocityPlanning::Cube2D<double>>> cube_cols;
+    bool is_generation_success = st_graph.generateCubes(&cube_cols);
+
+    for (int i = 0; i < cube_cols.size(); i++) {
+        for (int j = 0; j < cube_cols[i].size(); j++) {
+            std::cout << "col: " << i << ", num: " << j << std::endl;
+            cube_cols[i][j].print();
+        }
+    }
+
+    std::vector<std::vector<VelocityPlanning::Cube2D<double>>> cube_paths;
+    bool is_connection_success = st_graph.connectCubes(cube_cols, &cube_paths); 
+
     // END DEBUG
 
     // 设置三大状态都不可行(for debug)
