@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-07 09:27:51
+ * @LastEditTime: 2022-08-08 21:24:24
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -382,7 +382,7 @@ void StGraph::loadAccelerationLimitation() {
     grid_map_2D_->fillAccBannedArea(upper_boundary_grid_positions);
 }
 
-bool StGraph::generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes) {
+bool StGraph::generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes, std::vector<std::pair<double, double>>* last_s_range) {
     std::vector<std::vector<Cube2D<double>>> calculated_cubes;
     
     // DEBUG
@@ -468,6 +468,16 @@ bool StGraph::generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes) {
     // END DEBUG
 
     *cubes = calculated_cubes;
+
+    // Calculate the last s range
+    std::vector<Cube2D<double>> last_cubes_cols = calculated_cubes.back();
+    std::vector<std::pair<double, double>> calculated_last_s_range;
+    for (const auto& cube : last_cubes_cols) {
+        calculated_last_s_range.emplace_back(std::make_pair(cube.s_start_, cube.s_end_));
+    }
+
+    *last_s_range = calculated_last_s_range;
+
     return true;
 }
 
@@ -556,7 +566,8 @@ bool StGraph::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, st
 
     // ~Stage II: generate cubes
     std::vector<std::vector<Cube2D<double>>> cubes;
-    bool is_generated_success = generateCubes(&cubes);
+    std::vector<std::pair<double, double>> last_s_range;
+    bool is_generated_success = generateCubes(&cubes, &last_s_range);
     if (!is_generated_success) {
         return false;
     }

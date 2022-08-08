@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:08
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-07 09:05:37
+ * @LastEditTime: 2022-08-08 20:41:27
  * @Description: velocity optimization.
  */
 
@@ -31,7 +31,7 @@ class OoqpOptimizationInterface {
      * @param unequal_constraints position limit of each point
      * @param equal_constraints ensure the continuity of the connections between each two cubes
      */    
-    void load(const std::vector<double>& ref_stamps, const std::array<double, 3>& start_constraints, const std::array<double, 3>& end_constraints, std::array<std::vector<double>, 2>& unequal_constraints, std::vector<std::vector<double>>& equal_constraints);
+    void load(const std::vector<double>& ref_stamps, const std::array<double, 3>& start_constraints, const double& end_s_constraint, std::array<std::vector<double>, 2>& unequal_constraints, std::vector<std::vector<double>>& equal_constraints);
 
     /**
      * @brief Run optimization
@@ -44,7 +44,7 @@ class OoqpOptimizationInterface {
      * @brief Optimize in single dimension
      * @param {*}
      */
-    void optimizeSingleDim(const std::array<double, 3>& single_start_constraints, const std::array<double, 3>& single_end_constraints, const std::vector<double>& single_lower_boundaries, const std::vector<double>& single_upper_boundaries);
+    void optimizeSingleDim(const std::array<double, 3>& single_start_constraints, const double& end_s_constraint, const std::vector<double>& single_lower_boundaries, const std::vector<double>& single_upper_boundaries);
 
     /**
      * @brief calculate objective function
@@ -57,7 +57,12 @@ class OoqpOptimizationInterface {
      * @brief Calculate equal constraints, note that position constraints in the connection don't need to be considered
      * @param {*}
      */
-    void calculateAbMatrix(const std::array<double, 3>& single_start_constraints, const std::array<double, 3>& single_end_constraints, const std::vector<std::vector<double>>& equal_constraints, Eigen::SparseMatrix<double, Eigen::RowMajor>& A, Eigen::VectorXd& b);
+    void calculateAbMatrix(const std::array<double, 3>& single_start_constraints, const double& end_s_constraint, const std::vector<std::vector<double>>& equal_constraints, Eigen::SparseMatrix<double, Eigen::RowMajor>& A, Eigen::VectorXd& b);
+
+    // DEBUG
+    // Test the situation without end point constraints
+    void calculateAbMatrix(const std::array<double, 3>& single_start_constraints, const std::vector<std::vector<double>>& equal_constraints, Eigen::SparseMatrix<double, Eigen::RowMajor>& A, Eigen::VectorXd& b);
+    // END DEBUG
 
     /**
      * @brief Calculate boundaries for intermediate points
@@ -79,7 +84,7 @@ class OoqpOptimizationInterface {
 
     std::vector<double> ref_stamps_;
     std::array<double, 3> start_constraints_;
-    std::array<double, 3> end_constraints_;
+    double end_s_constraint_;
     std::array<std::vector<double>, 2> unequal_constraints_;
     std::vector<std::vector<double>> equal_constraints_;
 
@@ -94,10 +99,10 @@ class VelocityOptimizer {
     VelocityOptimizer();
     ~VelocityOptimizer();
 
-    bool runOnce(const std::vector<std::vector<Cube2D<double>>>& cube_paths, const std::array<double, 3>& start_state, std::vector<double>* s, std::vector<double>* t);
+    bool runOnce(const std::vector<std::vector<Cube2D<double>>>& cube_paths, const std::array<double, 3>& start_state, std::vector<std::pair<double, double>>& last_s_range, std::vector<double>* s, std::vector<double>* t);
 
-    void runSingleCubesPath(const std::vector<Cube2D<double>>& cube_path, const std::array<double, 3>& start_state, int index);
-
+    void runSingleCubesPath(const std::vector<Cube2D<double>>& cube_path, const std::array<double, 3>& start_state, const double& end_s, int index);
+    
     std::array<std::vector<double>, 2> generateUnequalConstraints(const std::vector<Cube2D<double>>& cube_path);
 
     std::vector<std::vector<double>> generateEqualConstraints(const std::vector<Cube2D<double>>& cube_path);

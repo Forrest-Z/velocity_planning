@@ -57,7 +57,8 @@ void DecisionMaking::SubVehicle::checkStates() {
     // st_graph.visualization();
 
     std::vector<std::vector<VelocityPlanning::Cube2D<double>>> cube_cols;
-    bool is_generation_success = st_graph.generateCubes(&cube_cols);
+    std::vector<std::pair<double, double>> last_s_range;
+    bool is_generation_success = st_graph.generateCubes(&cube_cols, &last_s_range);
 
     for (int i = 0; i < cube_cols.size(); i++) {
         for (int j = 0; j < cube_cols[i].size(); j++) {
@@ -65,6 +66,10 @@ void DecisionMaking::SubVehicle::checkStates() {
             cube_cols[i][j].print();
         }
     }
+
+    // Get the last limitation
+
+    
 
     std::vector<std::vector<VelocityPlanning::Cube2D<double>>> cube_paths;
     bool is_connection_success = st_graph.connectCubes(cube_cols, &cube_paths); 
@@ -76,7 +81,7 @@ void DecisionMaking::SubVehicle::checkStates() {
     std::vector<double> s;
     std::vector<double> t;
 
-    velocity_optimizer.runOnce(cube_paths, start_state, &s, &t);
+    velocity_optimizer.runOnce(cube_paths, start_state, last_s_range, &s, &t);
 
     std::cout << "s: " << std::endl;
     for (int i = 0; i < s.size(); i++) {

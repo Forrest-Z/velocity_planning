@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-06 21:19:17
+ * @LastEditTime: 2022-08-08 19:58:23
  * @Description: s-t graph
  */
 
@@ -126,7 +126,7 @@ class StGraph {
 
     void loadAccelerationLimitation();
 
-    bool generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes);
+    bool generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes, std::vector<std::pair<double, double>>* last_s_range);
 
     std::vector<Cube2D<double>> gridCubesToRealCubes(const std::vector<Cube2D<int>>& grid_cubes);
 

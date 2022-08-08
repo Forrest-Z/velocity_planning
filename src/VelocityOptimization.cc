@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-08 17:06:31
+ * @LastEditTime: 2022-08-08 22:06:35
  * @Description: velocity optimization.
  */
 
@@ -22,10 +22,10 @@ OoqpOptimizationInterface::~OoqpOptimizationInterface() = default;
  * @param unequal_constraints position limit of each point
  * @param equal_constraints ensure the continuity of the connections between each two cubes
  */    
-void OoqpOptimizationInterface::load(const std::vector<double>& ref_stamps, const std::array<double, 3>& start_constraints, const std::array<double, 3>& end_constraints, std::array<std::vector<double>, 2>& unequal_constraints, std::vector<std::vector<double>>& equal_constraints) {
+void OoqpOptimizationInterface::load(const std::vector<double>& ref_stamps, const std::array<double, 3>& start_constraints, const double& end_s_constraint, std::array<std::vector<double>, 2>& unequal_constraints, std::vector<std::vector<double>>& equal_constraints) {
     ref_stamps_ = ref_stamps;
     start_constraints_ = start_constraints;
-    end_constraints_ = end_constraints;
+    end_s_constraint_ = end_s_constraint;
     unequal_constraints_ = unequal_constraints;
     equal_constraints_ = equal_constraints;
 }
@@ -47,7 +47,7 @@ bool OoqpOptimizationInterface::runOnce(std::vector<double>* optimized_s) {
     // clock_t single_dim_optimization_end_time = clock();
 
 
-    optimizeSingleDim(start_constraints_, end_constraints_, unequal_constraints_[0], unequal_constraints_[1]);
+    optimizeSingleDim(start_constraints_, end_s_constraint_, unequal_constraints_[0], unequal_constraints_[1]);
     
     *optimized_s = optimized_data_;
     return optimization_res_;
@@ -57,7 +57,7 @@ bool OoqpOptimizationInterface::runOnce(std::vector<double>* optimized_s) {
  * @brief Optimize in single dimension
  * @param {*}
  */
-void OoqpOptimizationInterface::optimizeSingleDim(const std::array<double, 3>& single_start_constraints, const std::array<double, 3>& single_end_constraints, const std::vector<double>& single_lower_boundaries, const std::vector<double>& single_upper_boundaries) {
+void OoqpOptimizationInterface::optimizeSingleDim(const std::array<double, 3>& single_start_constraints, const double& end_s_constraint, const std::vector<double>& single_lower_boundaries, const std::vector<double>& single_upper_boundaries) {
     // ~Stage I: calculate objective function Q and c
     Eigen::SparseMatrix<double, Eigen::RowMajor> Q;
     Eigen::VectorXd c;
@@ -71,7 +71,7 @@ void OoqpOptimizationInterface::optimizeSingleDim(const std::array<double, 3>& s
     // ~Stage II: calculate equal constraints, includes start point constraints, end point constraints and continuity constraints
     Eigen::SparseMatrix<double, Eigen::RowMajor> A;
     Eigen::VectorXd b;
-    calculateAbMatrix(single_start_constraints, single_end_constraints, equal_constraints_, A, b);
+    calculateAbMatrix(single_start_constraints, end_s_constraint, equal_constraints_, A, b);
 
     // // DEBUG
     // std::cout << "A: " << A << std::endl;
@@ -144,15 +144,84 @@ void OoqpOptimizationInterface::calculateQcMatrix(Eigen::SparseMatrix<double, Ei
     c.setZero();
 }
 
+// DEBUG
+// Test the optimization process without the end point constraint
+void OoqpOptimizationInterface::calculateAbMatrix(const std::array<double, 3>& single_start_constraints, const std::vector<std::vector<double>>& equal_constraints, Eigen::SparseMatrix<double, Eigen::RowMajor>& A, Eigen::VectorXd& b) {
+            
+    // Calculate dimensions and initialize
+    int variables_num = (static_cast<int>(ref_stamps_.size()) - 1) * 6;
+    int equal_constraints_num = 3 + (static_cast<int>(ref_stamps_.size()) - 2) * 3;
+    double start_cube_time_span = ref_stamps_[1] - ref_stamps_[0];
+    double end_cube_time_span = ref_stamps_[ref_stamps_.size() - 1] - ref_stamps_[ref_stamps_.size() - 2];
+    Eigen::MatrixXd A_matrix = Eigen::MatrixXd::Zero(equal_constraints_num, variables_num);
+    Eigen::MatrixXd b_matrix = Eigen::MatrixXd::Zero(equal_constraints_num, 1);
+
+    // // supply start point and end point position constraints 
+    // A_matrix(0, 0) = 1.0, A_matrix(1, variables_num - 1) = 1.0;
+    // b_matrix(0, 0) = single_start_constraints[0], b_matrix(1, 0) = single_end_constraints[0];
+
+    // // supply start point and end point velocity constraints
+    // A_matrix(2, 0) = -5.0, A_matrix(2, 1) = 5.0;
+    // b_matrix(2, 0) = single_start_constraints[1] * start_cube_time_span;
+    // A_matrix(3, variables_num - 2) = -5.0, A_matrix(3, variables_num - 1) = 5.0;
+    // b_matrix(3, 0) = single_end_constraints[1] * end_cube_time_span;
+
+    // // supply start point and end point acceleration constraints
+    // A_matrix(4, 0) = 20.0, A_matrix(4, 1) = -40.0, A_matrix(4, 2) = 20.0;
+    // b_matrix(4, 0) = single_start_constraints[2] * start_cube_time_span;
+    // A_matrix(5, variables_num - 3) = 20.0, A_matrix(5, variables_num - 2) = -40.0, A_matrix(5, variables_num - 1) = 20.0;
+    // b_matrix(5, 0) = single_end_constraints[2] * end_cube_time_span;
+
+    // Supply start point s constraint
+    A_matrix(0, 0) = 1.0;
+    b_matrix(0, 0) = single_start_constraints[0];
+
+    // Supply start point v constraint
+    A_matrix(1, 0) = -5.0, A_matrix(2, 1) = 5.0;
+    b_matrix(1, 0) = single_start_constraints[1] * start_cube_time_span;
+
+    // Supply start point a constraint
+    A_matrix(2, 0) = 20.0, A_matrix(2, 1) = -40.0, A_matrix(2, 2) = 20.0;
+    b_matrix(2, 0) = single_start_constraints[2] * start_cube_time_span;
+
+    // supply continuity ensurance constraints
+    for (int i = 0; i < static_cast<int>(equal_constraints.size()); i++) {
+        int constraint_index = i + 3;
+        for (int j = 0; j < variables_num; j++) {
+            
+            // DEBUG: check this logic
+            assert(static_cast<int>(equal_constraints[i].size()) == variables_num);
+            // END DEBUG
+
+            A_matrix(constraint_index, j) = equal_constraints[i][j];
+        }
+    }
+    A = A_matrix.sparseView();
+    b = b_matrix;
+
+    // // DEBUG
+    // std::cout << "A_matrix: " << std::endl;
+    // for (int i = 0; i < A_matrix.rows(); i++) {
+    //     for (int j = 0; j < A_matrix.cols(); j++) {
+    //         std::cout << A_matrix(i, j) << ", ";
+    //     }
+    // }
+    // std::cout << "-------------------" << std::endl;
+    // std::cout << b_matrix << std::endl;
+    // std::cout << "-------------------" << std::endl;
+    // // END DEBUG
+}
+
 /**
  * @brief Calculate equal constraints, note that position constraints in the connection don't need to be considered
  * @param {*}
  */
-void OoqpOptimizationInterface::calculateAbMatrix(const std::array<double, 3>& single_start_constraints, const std::array<double, 3>& single_end_constraints, const std::vector<std::vector<double>>& equal_constraints, Eigen::SparseMatrix<double, Eigen::RowMajor>& A, Eigen::VectorXd& b) {
+// This version delete the v and a constraint of the final point
+void OoqpOptimizationInterface::calculateAbMatrix(const std::array<double, 3>& single_start_constraints, const double& end_s_constraint, const std::vector<std::vector<double>>& equal_constraints, Eigen::SparseMatrix<double, Eigen::RowMajor>& A, Eigen::VectorXd& b) {
             
     // Calculate dimensions and initialize
     int variables_num = (static_cast<int>(ref_stamps_.size()) - 1) * 6;
-    int equal_constraints_num = 6 + (static_cast<int>(ref_stamps_.size()) - 2) * 3;
+    int equal_constraints_num = 4 + (static_cast<int>(ref_stamps_.size()) - 2) * 3;
     double start_cube_time_span = ref_stamps_[1] - ref_stamps_[0];
     double end_cube_time_span = ref_stamps_[ref_stamps_.size() - 1] - ref_stamps_[ref_stamps_.size() - 2];
     Eigen::MatrixXd A_matrix = Eigen::MatrixXd::Zero(equal_constraints_num, variables_num);
@@ -160,23 +229,23 @@ void OoqpOptimizationInterface::calculateAbMatrix(const std::array<double, 3>& s
 
     // supply start point and end point position constraints 
     A_matrix(0, 0) = 1.0, A_matrix(1, variables_num - 1) = 1.0;
-    b_matrix(0, 0) = single_start_constraints[0], b_matrix(1, 0) = single_end_constraints[0];
+    b_matrix(0, 0) = single_start_constraints[0], b_matrix(1, 0) = end_s_constraint;
 
     // supply start point and end point velocity constraints
     A_matrix(2, 0) = -5.0, A_matrix(2, 1) = 5.0;
     b_matrix(2, 0) = single_start_constraints[1] * start_cube_time_span;
-    A_matrix(3, variables_num - 2) = -5.0, A_matrix(3, variables_num - 1) = 5.0;
-    b_matrix(3, 0) = single_end_constraints[1] * end_cube_time_span;
+    // A_matrix(3, variables_num - 2) = -5.0, A_matrix(3, variables_num - 1) = 5.0;
+    // b_matrix(3, 0) = single_end_constraints[1] * end_cube_time_span;
 
     // supply start point and end point acceleration constraints
-    A_matrix(4, 0) = 20.0, A_matrix(4, 1) = -40.0, A_matrix(4, 2) = 20.0;
-    b_matrix(4, 0) = single_start_constraints[2] * start_cube_time_span;
-    A_matrix(5, variables_num - 3) = 20.0, A_matrix(5, variables_num - 2) = -40.0, A_matrix(5, variables_num - 1) = 20.0;
-    b_matrix(5, 0) = single_end_constraints[2] * end_cube_time_span;
-
+    A_matrix(3, 0) = 20.0, A_matrix(3, 1) = -40.0, A_matrix(3, 2) = 20.0;
+    b_matrix(3, 0) = single_start_constraints[2] * start_cube_time_span;
+    // A_matrix(5, variables_num - 3) = 20.0, A_matrix(5, variables_num - 2) = -40.0, A_matrix(5, variables_num - 1) = 20.0;
+    // b_matrix(5, 0) = single_end_constraints[2] * end_cube_time_span;
+  
     // supply continuity ensurance constraints
     for (int i = 0; i < static_cast<int>(equal_constraints.size()); i++) {
-        int constraint_index = i + 6;
+        int constraint_index = i + 4;
         for (int j = 0; j < variables_num; j++) {
             
             // DEBUG: check this logic
@@ -328,6 +397,10 @@ bool OoqpOptimizationInterface::solve(const Eigen::SparseMatrix<double, Eigen::R
     // Solve
     int status = s->solve(prob, vars, resid);
 
+    // // DEBUG
+    // std::cout << "Optimization status: " << status << std::endl;
+    // // END DEBUG
+
     if (status == TerminationCode::SUCCESSFUL_TERMINATION) {
         vars->x->copyIntoArray(&x.coeffRef(0));
         *optimized_values = std::vector<double>(x.data(), x.data() + x.rows() * x.cols());
@@ -349,12 +422,12 @@ VelocityOptimizer::VelocityOptimizer() {
 
 VelocityOptimizer::~VelocityOptimizer() = default;
 
-bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& cube_paths, const std::array<double, 3>& start_state, std::vector<double>* s, std::vector<double>* t) {
-    // Initialize container
-    int n = cube_paths.size();
-    ss_.resize(n);
-    tt_.resize(n);
-    ress_.resize(n);
+bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& cube_paths, const std::array<double, 3>& start_state, std::vector<std::pair<double, double>>& last_s_range, std::vector<double>* s, std::vector<double>* t) {
+    // // Initialize container
+    // int n = cube_paths.size();
+    // ss_.resize(n);
+    // tt_.resize(n);
+    // ress_.resize(n);
 
     // // Construct threads
     // // TODO: check the reason why the result from single thread and multiple threads are different
@@ -366,53 +439,141 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
     //     threads[i].join();
     // }
 
-    // DEBUG
-    for (int i = 0; i < n; i++) {
-        runSingleCubesPath(cube_paths[i], start_state, i);
-    }
-    // END DEBUG
+    // // DEBUG
+    // for (int i = 0; i < n; i++) {
+    //     runSingleCubesPath(cube_paths[i], start_state, i);
+    // }
+    // // END DEBUG
 
-    // Evaluate and get result
-    int cur_max_final_s = INT_MIN;
-    bool final_optimization_res = false;
-    std::vector<double> calculated_s;
-    std::vector<double> calculated_t;
-    for (int i = 0; i < n; i++) {
-        if (ress_[i]) {
-            final_optimization_res = true;
-            if (ss_[i].back() > cur_max_final_s) {
-                cur_max_final_s = ss_[i].back();
-                calculated_s = ss_[i];
-                calculated_t = tt_[i];
-            }
+    // // Evaluate and get result
+    // int cur_max_final_s = INT_MIN;
+    // bool final_optimization_res = false;
+    // std::vector<double> calculated_s;
+    // std::vector<double> calculated_t;
+    // for (int i = 0; i < n; i++) {
+    //     if (ress_[i]) {
+    //         final_optimization_res = true;
+    //         if (ss_[i].back() > cur_max_final_s) {
+    //             cur_max_final_s = ss_[i].back();
+    //             calculated_s = ss_[i];
+    //             calculated_t = tt_[i];
+    //         }
             
-            // DEBUG
-            std::cout << "i: " << i << std::endl;
-            std::cout << "t: " << std::endl;
-            for (int j = 0; j < tt_[i].size(); j++) {
-                std::cout << tt_[i][j] << ", ";
-            }
-            std::cout << std::endl;
-            for (int j = 0; j < ss_[i].size(); j++) {
-                std::cout << ss_[i][j] << ", ";
-            }
-            std::cout << std::endl;
+    //         // DEBUG
+    //         std::cout << "i: " << i << std::endl;
+    //         std::cout << "t: " << std::endl;
+    //         for (int j = 0; j < tt_[i].size(); j++) {
+    //             std::cout << tt_[i][j] << ", ";
+    //         }
+    //         std::cout << std::endl;
+    //         for (int j = 0; j < ss_[i].size(); j++) {
+    //             std::cout << ss_[i][j] << ", ";
+    //         }
+    //         std::cout << std::endl;
 
-            // END DEBUG
+    //         // END DEBUG
+    //     }
+    // }
+
+    // *s = calculated_s;
+    // *t = calculated_t;
+
+    // return final_optimization_res;
+
+    // ~Stage I: determine the s sampling number due to the number of the available paths
+    int available_cube_paths_num = cube_paths.size();
+    const int optimization_maximum_number = 20;
+    int s_sampling_number = static_cast<int>(optimization_maximum_number / available_cube_paths_num);
+    int practical_optimization_number = available_cube_paths_num * s_sampling_number;
+
+    // ~Stage II: sampling s with a fixed interval
+    double s_available_range = last_s_range.back().second - last_s_range.front().first;
+    double s_start = last_s_range.front().first;
+    double s_end = last_s_range.back().second;
+    double s_interval = s_available_range / static_cast<double>(s_sampling_number - 1);
+    std::vector<double> sampled_s;
+    while (s_start <= s_end) {
+        sampled_s.emplace_back(s_start);
+        s_start += s_interval;
+    }
+
+    // ~Stage III: optimization
+    int n = cube_paths.size() * sampled_s.size();
+    ss_.resize(n);
+    tt_.resize(n);
+    ress_.resize(n);
+
+    for (int i = 0; i < cube_paths.size(); i++) {
+        for (int j = 0; j < sampled_s.size(); j++) {
+            int index = i * sampled_s.size() + j;
+            runSingleCubesPath(cube_paths[i], start_state, sampled_s[j], index);
         }
     }
 
-    *s = calculated_s;
-    *t = calculated_t;
+    // ~Stage III: select the res with the optimal jerk
+    // Minimum jerk
+    double min_jerk = static_cast<double>(INT_MAX);
+    int win_index = -1;
 
-    return final_optimization_res;
+
+    for (int j = 0; j < n; j++) {
+        if (!ress_[j]) continue;
+
+        bool fall_back = false;
+        for (int k = 6; k < ss_[j].size(); k += 6) {
+            if (std::accumulate(ss_[j].begin() + k, ss_[j].begin() + k + 6, 0) < std::accumulate(ss_[j].begin() + k - 6, ss_[j].begin() + k, 0)) {
+                fall_back = true;
+                break;
+            }
+        }
+        if (fall_back) {
+            continue;
+        }
+
+        // Calculate Q matrix
+        int variables_num = (static_cast<int>(tt_[j].size()) - 1) * 6;
+        Eigen::MatrixXd Q_matrix = Eigen::MatrixXd::Zero(variables_num, variables_num);
+
+        // Calculate D matrix
+        for (int i = 0; i < static_cast<int>(tt_[j].size()) - 1; i++) {
+            // Calculate time span
+            double time_span = tt_[j][i + 1] - tt_[j][i];
+            double time_coefficient = pow(time_span, -3);
+
+            // Intergrate to objective function
+            int influenced_variable_index = i * 6;
+            Q_matrix.block(influenced_variable_index, influenced_variable_index, 6, 6) += BezierCurveHessianMatrix * time_coefficient;
+        }
+
+        Eigen::VectorXd s_vec = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(ss_[j].data(), ss_[j].size());
+
+        double cur_jerk = s_vec.transpose() * Q_matrix * s_vec;
+
+        std::cout << "Jerk: " << cur_jerk << std::endl;
+        if (cur_jerk < min_jerk) {
+            min_jerk = cur_jerk;
+            win_index = j;
+        }
+
+    }
+
+    if (win_index == -1) {
+        return false;
+    }
+    
+    *s = ss_[win_index];
+    *t = tt_[win_index];
+    return true;
+
+    
+    
+
+    
 
 
 }
 
-void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cube_path, const std::array<double, 3>& start_state, int index) {
-    // Estimate the end state constraint
-    std::array<double, 3> end_state = {(cube_path.back().s_start_ + cube_path.back().s_end_) / 2.0, 0.0, 0.0};
+void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cube_path, const std::array<double, 3>& start_state, const double& end_s, int index) {
 
     // ~Stage I: calculate time stamps of split point (include start point and end point)
     std::vector<double> ref_stamps;
@@ -447,7 +608,7 @@ void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cu
 
     // ~Stage IV: optimization
     std::vector<double> optimized_s;
-    ooqp_itf_->load(ref_stamps, start_state, end_state, unequal_constraints, equal_constraints);
+    ooqp_itf_->load(ref_stamps, start_state, end_s, unequal_constraints, equal_constraints);
     bool optimization_res = ooqp_itf_->runOnce(&optimized_s);
 
     // // DEBUG
@@ -671,10 +832,10 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     // ~Stage II: generate s-t parameters
     std::vector<double> s;
     std::vector<double> t;
-    velocity_optimizer_->runOnce(cube_paths, start_state_, &s, &t);
+    // velocity_optimizer_->runOnce(cube_paths, start_state_, &s, &t);
 
-    // ~Stage III: generate s-t profile
-    bezier_curve_traj_generator_ = new BezierPiecewiseCurve(s, t);
+    // // ~Stage III: generate s-t profile
+    // bezier_curve_traj_generator_ = new BezierPiecewiseCurve(s, t);
 
     // ~Stage IV: supply s-t profile to the standard state
     
