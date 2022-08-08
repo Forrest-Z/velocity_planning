@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:08
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-04 18:34:30
+ * @LastEditTime: 2022-08-07 09:05:37
  * @Description: velocity optimization.
  */
 
@@ -96,11 +96,18 @@ class VelocityOptimizer {
 
     bool runOnce(const std::vector<std::vector<Cube2D<double>>>& cube_paths, const std::array<double, 3>& start_state, std::vector<double>* s, std::vector<double>* t);
 
+    void runSingleCubesPath(const std::vector<Cube2D<double>>& cube_path, const std::array<double, 3>& start_state, int index);
+
     std::array<std::vector<double>, 2> generateUnequalConstraints(const std::vector<Cube2D<double>>& cube_path);
 
     std::vector<std::vector<double>> generateEqualConstraints(const std::vector<Cube2D<double>>& cube_path);
 
     OoqpOptimizationInterface* ooqp_itf_{nullptr};
+
+    // Store the information for different cube paths
+    std::vector<std::vector<double>> ss_;
+    std::vector<std::vector<double>> tt_;
+    std::vector<bool> ress_;
 };
 
 // Generate interpolated curves

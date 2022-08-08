@@ -49,6 +49,7 @@ void DecisionMaking::SubVehicle::checkStates() {
     this->velocityPlanningForState(&(this->states_set_[StateNames::TURN_RIGHT]), obstacles, true);
 
     // DEBUG
+
     VelocityPlanning::StGraph::Param param;
     VelocityPlanning::StGraph st_graph = VelocityPlanning::StGraph(states_set_[StateNames::FORWARD].getTotalTrajectory(), param, 5.0);
     st_graph.loadObstacles(obstacles);
@@ -67,6 +68,45 @@ void DecisionMaking::SubVehicle::checkStates() {
 
     std::vector<std::vector<VelocityPlanning::Cube2D<double>>> cube_paths;
     bool is_connection_success = st_graph.connectCubes(cube_cols, &cube_paths); 
+
+    VelocityPlanning::VelocityOptimizer velocity_optimizer = VelocityPlanning::VelocityOptimizer();
+
+    std::array<double, 3> start_state = {0.0, 5.0, 0.0};
+
+    std::vector<double> s;
+    std::vector<double> t;
+
+    velocity_optimizer.runOnce(cube_paths, start_state, &s, &t);
+
+    std::cout << "s: " << std::endl;
+    for (int i = 0; i < s.size(); i++) {
+        std::cout << s[i] << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "t: " << std::endl;
+    for (int i = 0; i < t.size(); i++) {
+        std::cout << t[i] << ", ";
+    }
+    std::cout << std::endl;
+
+    VelocityPlanning::BezierPiecewiseCurve profile_generator = VelocityPlanning::BezierPiecewiseCurve(s, t);
+    std::vector<Eigen::Vector2d> profile = profile_generator.generateTraj();
+
+    std::cout << "s: " << std::endl;
+    for (int i = 0; i < profile.size(); i++) {
+        std::cout << profile[i](0) << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "t: " << std::endl;
+    for (int i = 0; i < profile.size(); i++) {
+        std::cout << profile[i](1) << ", ";
+    }
+    std::cout << std::endl;
+
+
+
+
+
 
     // END DEBUG
 

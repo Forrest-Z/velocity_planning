@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-06 22:15:48
+ * @LastEditTime: 2022-08-07 09:27:51
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -255,6 +255,10 @@ void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
         return;
     }
 
+    // DEBUG
+    std::cout << "load obstacle success" << std::endl;
+    // END DEBUG
+
     for (int i = 0; i < obstacle.getPredictedTrajectoryNumber(); i++) {
         // Construct occupied area
         DecisionMaking::RSS::OccupationArea cur_obs_occupy_area = DecisionMaking::RSS::OccupationArea(obstacle, i, 1);
@@ -482,9 +486,9 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
     std::vector<Cube2D<double>> cube_path;
     dfsConnectCubes(input_cubes, 0, cube_path);
 
-    // DEBUG
-    std::cout << "dfs search complete" <<std::endl; 
-    // END DEBUG
+    // // DEBUG
+    // std::cout << "dfs search complete" <<std::endl; 
+    // // END DEBUG
 
     if (connected_cubes_.size() > 0) {
         *output_cubes = connected_cubes_;
@@ -497,7 +501,7 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
                 connected_cubes_[i][j].print();
             }
         }
-        visualization(calculated_grid_cubes_columns_);
+        // visualization(calculated_grid_cubes_columns_);
         // END DEBUG
 
 

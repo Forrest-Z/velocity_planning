@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-04 18:34:55
+ * @LastEditTime: 2022-08-08 17:06:31
  * @Description: velocity optimization.
  */
 
@@ -48,7 +48,8 @@ bool OoqpOptimizationInterface::runOnce(std::vector<double>* optimized_s) {
 
 
     optimizeSingleDim(start_constraints_, end_constraints_, unequal_constraints_[0], unequal_constraints_[1]);
-
+    
+    *optimized_s = optimized_data_;
     return optimization_res_;
 }
 
@@ -349,10 +350,67 @@ VelocityOptimizer::VelocityOptimizer() {
 VelocityOptimizer::~VelocityOptimizer() = default;
 
 bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& cube_paths, const std::array<double, 3>& start_state, std::vector<double>* s, std::vector<double>* t) {
-    // TODO: evaluate all possible cube path
-    // Only evaluate one path
-    std::vector<Cube2D<double>> cube_path = cube_paths[0];
+    // Initialize container
+    int n = cube_paths.size();
+    ss_.resize(n);
+    tt_.resize(n);
+    ress_.resize(n);
 
+    // // Construct threads
+    // // TODO: check the reason why the result from single thread and multiple threads are different
+    // std::vector<std::thread> threads(n);
+    // for (int i = 0; i < n; i++) {
+    //     threads[i] = std::thread(&VelocityOptimizer::runSingleCubesPath, this, cube_paths[i], start_state, i);
+    // }
+    // for (int i = 0; i < n; i++) {
+    //     threads[i].join();
+    // }
+
+    // DEBUG
+    for (int i = 0; i < n; i++) {
+        runSingleCubesPath(cube_paths[i], start_state, i);
+    }
+    // END DEBUG
+
+    // Evaluate and get result
+    int cur_max_final_s = INT_MIN;
+    bool final_optimization_res = false;
+    std::vector<double> calculated_s;
+    std::vector<double> calculated_t;
+    for (int i = 0; i < n; i++) {
+        if (ress_[i]) {
+            final_optimization_res = true;
+            if (ss_[i].back() > cur_max_final_s) {
+                cur_max_final_s = ss_[i].back();
+                calculated_s = ss_[i];
+                calculated_t = tt_[i];
+            }
+            
+            // DEBUG
+            std::cout << "i: " << i << std::endl;
+            std::cout << "t: " << std::endl;
+            for (int j = 0; j < tt_[i].size(); j++) {
+                std::cout << tt_[i][j] << ", ";
+            }
+            std::cout << std::endl;
+            for (int j = 0; j < ss_[i].size(); j++) {
+                std::cout << ss_[i][j] << ", ";
+            }
+            std::cout << std::endl;
+
+            // END DEBUG
+        }
+    }
+
+    *s = calculated_s;
+    *t = calculated_t;
+
+    return final_optimization_res;
+
+
+}
+
+void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cube_path, const std::array<double, 3>& start_state, int index) {
     // Estimate the end state constraint
     std::array<double, 3> end_state = {(cube_path.back().s_start_ + cube_path.back().s_end_) / 2.0, 0.0, 0.0};
 
@@ -368,20 +426,38 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
     // ~Stage II: calculate unequal constraints for variables (except start point and end point)
     std::array<std::vector<double>, 2> unequal_constraints = generateUnequalConstraints(cube_path);
 
+    // DEBUG
+    std::cout << "Index: " << index << std::endl;
+    std::cout << "Unequal constraints: " << std::endl;
+    for (int i = 0; i < unequal_constraints[0].size(); i++) {
+        std::cout << "Lower: " << unequal_constraints[0][i] << ", upper: " << unequal_constraints[1][i] << std::endl;
+    }
+    // END DEBUG
+
+    // // DEBUG
+    // std::cout << "unequal constraints calculation success" << std::endl;
+    // // END DEBUG
+
     // ~Stage III: calculate equal constraints to ensure the continuity
     std::vector<std::vector<double>> equal_constraints = generateEqualConstraints(cube_path);
+
+    // // DEBUG
+    // std::cout << "equal constraints calculation success" << std::endl;
+    // // END DEBUG
 
     // ~Stage IV: optimization
     std::vector<double> optimized_s;
     ooqp_itf_->load(ref_stamps, start_state, end_state, unequal_constraints, equal_constraints);
     bool optimization_res = ooqp_itf_->runOnce(&optimized_s);
 
-    *s = optimized_s;
-    *t = ref_stamps;
+    // // DEBUG
+    // std::cout << "optimization res: " << optimization_res << std::endl;
+    // // END DEBUG
 
-    return optimization_res;
-
-
+    ss_[index] = optimized_s;
+    tt_[index] = ref_stamps;
+    ress_[index] = optimization_res;
+    
 }
 
 std::array<std::vector<double>, 2> VelocityOptimizer::generateUnequalConstraints(const std::vector<Cube2D<double>>& cube_path) {
@@ -436,7 +512,7 @@ std::vector<std::vector<double>> VelocityOptimizer::generateEqualConstraints(con
     int variables_num = static_cast<int>(cube_path.size()) * 6;
 
     // Calculate equal constraints
-    for (int i = 0; i < static_cast<int>(cube_path.size()); i++) {
+    for (int i = 0; i < static_cast<int>(cube_path.size()) - 1; i++) {
         // Calculate two related cubes and their time span
         int current_cube_index = i;
         int next_cube_index = i + 1;
