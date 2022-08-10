@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:08
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-08 20:41:27
+ * @LastEditTime: 2022-08-09 16:38:41
  * @Description: velocity optimization.
  */
 
@@ -38,7 +38,7 @@ class OoqpOptimizationInterface {
      * @param {*}
      * @return {*}
      */    
-    bool runOnce(std::vector<double>* optimized_s);
+    bool runOnce(std::vector<double>* optimized_s, double* objective_value);
 
     /**
      * @brief Optimize in single dimension
@@ -80,7 +80,8 @@ class OoqpOptimizationInterface {
                     const Eigen::SparseMatrix<double, Eigen::RowMajor>& A,
                     const Eigen::VectorXd& b,
                     Eigen::Matrix<char, Eigen::Dynamic, 1>& useLowerLimitForX, Eigen::Matrix<char, Eigen::Dynamic, 1>& useUpperLimitForX, 
-                    Eigen::VectorXd& lowerLimitForX, Eigen::VectorXd& upperLimitForX, std::vector<double>* optimized_values);
+                    Eigen::VectorXd& lowerLimitForX, Eigen::VectorXd& upperLimitForX, 
+                    std::vector<double>* optimized_values, double* objective_value);
 
     std::vector<double> ref_stamps_;
     std::array<double, 3> start_constraints_;
@@ -92,6 +93,7 @@ class OoqpOptimizationInterface {
 
     std::vector<double> optimized_data_;
     bool optimization_res_;
+    double objective_value_;
 };
 
 class VelocityOptimizer {
@@ -113,6 +115,7 @@ class VelocityOptimizer {
     std::vector<std::vector<double>> ss_;
     std::vector<std::vector<double>> tt_;
     std::vector<bool> ress_;
+    std::vector<double> values_;
 };
 
 // Generate interpolated curves

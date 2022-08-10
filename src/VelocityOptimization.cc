@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-08 22:06:35
+ * @LastEditTime: 2022-08-10 21:57:11
  * @Description: velocity optimization.
  */
 
@@ -35,7 +35,7 @@ void OoqpOptimizationInterface::load(const std::vector<double>& ref_stamps, cons
  * @param {*}
  * @return {*}
  */    
-bool OoqpOptimizationInterface::runOnce(std::vector<double>* optimized_s) {
+bool OoqpOptimizationInterface::runOnce(std::vector<double>* optimized_s, double* objective_value) {
 
     // // Multi thread calculation
     // // TODO: add logic to handle the situation where the optimization process is failed
@@ -50,6 +50,7 @@ bool OoqpOptimizationInterface::runOnce(std::vector<double>* optimized_s) {
     optimizeSingleDim(start_constraints_, end_s_constraint_, unequal_constraints_[0], unequal_constraints_[1]);
     
     *optimized_s = optimized_data_;
+    *objective_value = objective_value_;
     return optimization_res_;
 }
 
@@ -97,11 +98,13 @@ void OoqpOptimizationInterface::optimizeSingleDim(const std::array<double, 3>& s
 
     // ~Stage IV: optimization
     std::vector<double> optimized_values;
-    bool optimization_status = solve(Q, c, A, b, useLowerLimitForX, useUpperLimitForX, lowerLimitForX, upperLimitForX, &optimized_values);
+    double objective_value = 0.0;
+    bool optimization_status = solve(Q, c, A, b, useLowerLimitForX, useUpperLimitForX, lowerLimitForX, upperLimitForX, &optimized_values, &objective_value);
 
     // ~Stage V: store information
     optimized_data_ = optimized_values;
     optimization_res_ = optimization_status;
+    objective_value_ = objective_value;
 }
 
 /**
@@ -308,7 +311,7 @@ bool OoqpOptimizationInterface::solve(const Eigen::SparseMatrix<double, Eigen::R
                 const Eigen::SparseMatrix<double, Eigen::RowMajor>& A,
                 const Eigen::VectorXd& b,
                 Eigen::Matrix<char, Eigen::Dynamic, 1>& useLowerLimitForX, Eigen::Matrix<char, Eigen::Dynamic, 1>& useUpperLimitForX, 
-                Eigen::VectorXd& lowerLimitForX, Eigen::VectorXd& upperLimitForX, std::vector<double>* optimized_values) {
+                Eigen::VectorXd& lowerLimitForX, Eigen::VectorXd& upperLimitForX, std::vector<double>* optimized_values, double* objective_value) {
     
     // // DEBUG
     // std::cout << "Q: " << Q << std::endl;
@@ -397,6 +400,10 @@ bool OoqpOptimizationInterface::solve(const Eigen::SparseMatrix<double, Eigen::R
     // Solve
     int status = s->solve(prob, vars, resid);
 
+    // // Test
+    // double objective_value = prob->objectiveValue(vars);
+    // std::cout << "Objective value: " << objective_value << std::endl;
+
     // // DEBUG
     // std::cout << "Optimization status: " << status << std::endl;
     // // END DEBUG
@@ -404,6 +411,7 @@ bool OoqpOptimizationInterface::solve(const Eigen::SparseMatrix<double, Eigen::R
     if (status == TerminationCode::SUCCESSFUL_TERMINATION) {
         vars->x->copyIntoArray(&x.coeffRef(0));
         *optimized_values = std::vector<double>(x.data(), x.data() + x.rows() * x.cols());
+        *objective_value = prob->objectiveValue(vars);
     }
 
     delete s;
@@ -482,7 +490,7 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
 
     // ~Stage I: determine the s sampling number due to the number of the available paths
     int available_cube_paths_num = cube_paths.size();
-    const int optimization_maximum_number = 20;
+    const int optimization_maximum_number = 50;
     int s_sampling_number = static_cast<int>(optimization_maximum_number / available_cube_paths_num);
     int practical_optimization_number = available_cube_paths_num * s_sampling_number;
 
@@ -502,6 +510,7 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
     ss_.resize(n);
     tt_.resize(n);
     ress_.resize(n);
+    values_.resize(n);
 
     for (int i = 0; i < cube_paths.size(); i++) {
         for (int j = 0; j < sampled_s.size(); j++) {
@@ -516,43 +525,41 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
     int win_index = -1;
 
 
-    for (int j = 0; j < n; j++) {
-        if (!ress_[j]) continue;
+    for (int i = 0; i < n; i++) {
+        if (!ress_[i]) continue;
 
-        bool fall_back = false;
-        for (int k = 6; k < ss_[j].size(); k += 6) {
-            if (std::accumulate(ss_[j].begin() + k, ss_[j].begin() + k + 6, 0) < std::accumulate(ss_[j].begin() + k - 6, ss_[j].begin() + k, 0)) {
-                fall_back = true;
-                break;
-            }
-        }
-        if (fall_back) {
-            continue;
-        }
+        // bool fall_back = false;
+        // for (int k = 6; k < ss_[j].size(); k += 6) {
+        //     if (std::accumulate(ss_[j].begin() + k, ss_[j].begin() + k + 6, 0) < std::accumulate(ss_[j].begin() + k - 6, ss_[j].begin() + k, 0)) {
+        //         fall_back = true;
+        //         break;
+        //     }
+        // }
+        // if (fall_back) {
+        //     continue;
+        // }
 
-        // Calculate Q matrix
-        int variables_num = (static_cast<int>(tt_[j].size()) - 1) * 6;
-        Eigen::MatrixXd Q_matrix = Eigen::MatrixXd::Zero(variables_num, variables_num);
+        double cur_jerk = values_[i];
 
-        // Calculate D matrix
-        for (int i = 0; i < static_cast<int>(tt_[j].size()) - 1; i++) {
-            // Calculate time span
-            double time_span = tt_[j][i + 1] - tt_[j][i];
-            double time_coefficient = pow(time_span, -3);
-
-            // Intergrate to objective function
-            int influenced_variable_index = i * 6;
-            Q_matrix.block(influenced_variable_index, influenced_variable_index, 6, 6) += BezierCurveHessianMatrix * time_coefficient;
-        }
-
-        Eigen::VectorXd s_vec = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(ss_[j].data(), ss_[j].size());
-
-        double cur_jerk = s_vec.transpose() * Q_matrix * s_vec;
-
+        // DEBUG
+        std::cout << "Number: " << i << std::endl;
         std::cout << "Jerk: " << cur_jerk << std::endl;
+        std::cout << "s: " << std::endl;
+        for (int j = 0; j < ss_[i].size(); j++) {
+            std::cout << ss_[i][j] << ", ";
+        }
+        std::cout << std::endl;
+        std::cout << "t: " << std::endl;
+        for (int j = 0; j < tt_[i].size(); j++) {
+            std::cout << tt_[i][j] << ", ";
+        }
+        std::cout << std::endl;
+        // END DEBUG
+
+
         if (cur_jerk < min_jerk) {
             min_jerk = cur_jerk;
-            win_index = j;
+            win_index = i;
         }
 
     }
@@ -574,6 +581,14 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
 }
 
 void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cube_path, const std::array<double, 3>& start_state, const double& end_s, int index) {
+
+    Cube2D<double> last_cube = cube_path.back();
+    if (end_s > last_cube.s_end_ || end_s < last_cube.s_start_) {
+
+        ress_[index] = false;
+
+        return;
+    }
 
     // ~Stage I: calculate time stamps of split point (include start point and end point)
     std::vector<double> ref_stamps;
@@ -608,8 +623,9 @@ void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cu
 
     // ~Stage IV: optimization
     std::vector<double> optimized_s;
+    double objective_value = 0.0;
     ooqp_itf_->load(ref_stamps, start_state, end_s, unequal_constraints, equal_constraints);
-    bool optimization_res = ooqp_itf_->runOnce(&optimized_s);
+    bool optimization_res = ooqp_itf_->runOnce(&optimized_s, &objective_value);
 
     // // DEBUG
     // std::cout << "optimization res: " << optimization_res << std::endl;
@@ -618,6 +634,7 @@ void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cu
     ss_[index] = optimized_s;
     tt_[index] = ref_stamps;
     ress_[index] = optimization_res;
+    values_[index] = objective_value;
     
 }
 

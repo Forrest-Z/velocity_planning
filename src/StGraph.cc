@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-08 21:24:24
+ * @LastEditTime: 2022-08-10 21:33:13
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -180,8 +180,8 @@ StGraph::StGraph(const PathPlanningUtilities::Curve& path, const Param& param, c
     ego_occupy_area_ = DecisionMaking::RSS::OccupationArea(path, param.occupied_width, param.occupied_length, 20);
     
     // Initialize grid map
-    int x_max = std::round(param.t_max / param.t_resolution);
-    int y_max = std::round(param.s_max / param.s_resolution);
+    int x_max = std::round(param.t_max / param.t_resolution) + 1;
+    int y_max = std::round(param.s_max / param.s_resolution) + 1;
     grid_map_2D_ = new GridMap2D(x_max, y_max);
 
     // // DEBUG
@@ -422,7 +422,7 @@ bool StGraph::generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes, std
         double cur_t_start = i * t_lateral;
         double cur_t_end = (i + 1) * t_lateral;
         int cur_t_start_grid = static_cast<int>(cur_t_start / param_.t_resolution);
-        int cur_t_end_grid = static_cast<int>(cur_t_end / param_.t_resolution) - 1;
+        int cur_t_end_grid = static_cast<int>(cur_t_end / param_.t_resolution);
 
         // // DEBUG
         // std::cout << "cur t start grid: " << cur_t_start_grid << std::endl;
