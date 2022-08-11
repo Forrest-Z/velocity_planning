@@ -299,6 +299,11 @@ class StandardState {
         std::vector<InfluenceObstacle>().swap(this->influence_obstacles_);
     }
 
+    void loadStProfile(const std::vector<double>& s, const std::vector<double>& v) {
+        s_ = s;
+        v_ = v;
+    }
+
     // 发布路径（保持速度模式）
     void publishCurveMsgVelocityMaintain(const ros::Publisher &publisher) const {
         if (this->state_name_ != StateNames::TURN_LEFT && this->state_name_ != StateNames::TURN_RIGHT && this->state_name_ != StateNames::FORWARD) {
@@ -334,17 +339,29 @@ class StandardState {
                 // 在当前位置前的点速度都为当前速度
                 point.velocity = this->current_movement_.velocity_;
             } else {
-                double distance = LANE_GAP_DISTANCE * (i - this->vehicle_current_position_index_);
-                if (Tools::isLarge(this->current_movement_.velocity_, max_velocity)) {
-                    // 如果当前车速大于最大车速
-                    point.velocity = std::max(sqrt(std::max(this->current_movement_.velocity_ * this->current_movement_.velocity_ + 2.0 * this->vehicle_goal_expected_average_acceleration_ * distance, 0.0)), this->velocity_limitation_min_);
-                } else if (Tools::isSmall(this->current_movement_.velocity_, this->velocity_limitation_min_)) {
-                    // 如果当前车速小于最小车速
-                    point.velocity = std::min(sqrt(std::max(this->current_movement_.velocity_ * this->current_movement_.velocity_ + 2.0 * this->vehicle_goal_expected_average_acceleration_ * distance, 0.0)), max_velocity);
-                } else {
-                    // 如果当前车速大于最小车速，小于最大车速
-                    point.velocity = std::max(std::min(sqrt(std::max(this->current_movement_.velocity_ * this->current_movement_.velocity_ + 2.0 * this->vehicle_goal_expected_average_acceleration_ * distance, 0.0)), max_velocity), this->velocity_limitation_min_);
+                // double distance = LANE_GAP_DISTANCE * (i - this->vehicle_current_position_index_);
+                // if (Tools::isLarge(this->current_movement_.velocity_, max_velocity)) {
+                //     // 如果当前车速大于最大车速
+                //     point.velocity = std::max(sqrt(std::max(this->current_movement_.velocity_ * this->current_movement_.velocity_ + 2.0 * this->vehicle_goal_expected_average_acceleration_ * distance, 0.0)), this->velocity_limitation_min_);
+                // } else if (Tools::isSmall(this->current_movement_.velocity_, this->velocity_limitation_min_)) {
+                //     // 如果当前车速小于最小车速
+                //     point.velocity = std::min(sqrt(std::max(this->current_movement_.velocity_ * this->current_movement_.velocity_ + 2.0 * this->vehicle_goal_expected_average_acceleration_ * distance, 0.0)), max_velocity);
+                // } else {
+                //     // 如果当前车速大于最小车速，小于最大车速
+                //     point.velocity = std::max(std::min(sqrt(std::max(this->current_movement_.velocity_ * this->current_movement_.velocity_ + 2.0 * this->vehicle_goal_expected_average_acceleration_ * distance, 0.0)), max_velocity), this->velocity_limitation_min_);
+                // }
+
+                double s = LANE_GAP_DISTANCE * (i - vehicle_current_position_index_);
+                int lower_index = std::lower_bound(s_.begin(), s_.end(), s) - s_.begin();
+                if (lower_index == s_.size()) {
+                    printf("[VelocityPlanning] current s excesses the upper bound.\n");
+                    continue;
                 }
+                double velocity = v_[lower_index];
+                point.velocity = velocity;
+
+
+
             }
             final_curve.points[i] = point;
         }
@@ -583,6 +600,10 @@ class StandardState {
     bool is_lane_being_occupied_by_obstacle_ = false;  // 判断对应道路是不是没有被障碍物占据
     double allowable_max_velocity_;  // 最大允许速度
     bool is_outof_trapping_ = false;  // 是否为脱困模式
+
+    // Velocity planning
+    std::vector<double> s_;
+    std::vector<double> v_;
 };
 
 }

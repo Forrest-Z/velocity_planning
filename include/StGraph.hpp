@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-08 19:58:23
+ * @LastEditTime: 2022-08-10 22:12:29
  * @Description: s-t graph
  */
 
@@ -138,7 +138,7 @@ class StGraph {
 
     void dfsConnectCubes(const std::vector<std::vector<Cube2D<double>>>& input_cubes, int layer_index, std::vector<Cube2D<double>>& cube_path);
 
-    bool runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths);
+    bool runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths, std::vector<std::pair<double, double>>* s_range);
 
     void visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths);
 

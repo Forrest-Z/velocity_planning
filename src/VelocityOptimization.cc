@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-10 21:57:11
+ * @LastEditTime: 2022-08-11 15:06:15
  * @Description: velocity optimization.
  */
 
@@ -431,62 +431,6 @@ VelocityOptimizer::VelocityOptimizer() {
 VelocityOptimizer::~VelocityOptimizer() = default;
 
 bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& cube_paths, const std::array<double, 3>& start_state, std::vector<std::pair<double, double>>& last_s_range, std::vector<double>* s, std::vector<double>* t) {
-    // // Initialize container
-    // int n = cube_paths.size();
-    // ss_.resize(n);
-    // tt_.resize(n);
-    // ress_.resize(n);
-
-    // // Construct threads
-    // // TODO: check the reason why the result from single thread and multiple threads are different
-    // std::vector<std::thread> threads(n);
-    // for (int i = 0; i < n; i++) {
-    //     threads[i] = std::thread(&VelocityOptimizer::runSingleCubesPath, this, cube_paths[i], start_state, i);
-    // }
-    // for (int i = 0; i < n; i++) {
-    //     threads[i].join();
-    // }
-
-    // // DEBUG
-    // for (int i = 0; i < n; i++) {
-    //     runSingleCubesPath(cube_paths[i], start_state, i);
-    // }
-    // // END DEBUG
-
-    // // Evaluate and get result
-    // int cur_max_final_s = INT_MIN;
-    // bool final_optimization_res = false;
-    // std::vector<double> calculated_s;
-    // std::vector<double> calculated_t;
-    // for (int i = 0; i < n; i++) {
-    //     if (ress_[i]) {
-    //         final_optimization_res = true;
-    //         if (ss_[i].back() > cur_max_final_s) {
-    //             cur_max_final_s = ss_[i].back();
-    //             calculated_s = ss_[i];
-    //             calculated_t = tt_[i];
-    //         }
-            
-    //         // DEBUG
-    //         std::cout << "i: " << i << std::endl;
-    //         std::cout << "t: " << std::endl;
-    //         for (int j = 0; j < tt_[i].size(); j++) {
-    //             std::cout << tt_[i][j] << ", ";
-    //         }
-    //         std::cout << std::endl;
-    //         for (int j = 0; j < ss_[i].size(); j++) {
-    //             std::cout << ss_[i][j] << ", ";
-    //         }
-    //         std::cout << std::endl;
-
-    //         // END DEBUG
-    //     }
-    // }
-
-    // *s = calculated_s;
-    // *t = calculated_t;
-
-    // return final_optimization_res;
 
     // ~Stage I: determine the s sampling number due to the number of the available paths
     int available_cube_paths_num = cube_paths.size();
@@ -528,16 +472,16 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
     for (int i = 0; i < n; i++) {
         if (!ress_[i]) continue;
 
-        // bool fall_back = false;
-        // for (int k = 6; k < ss_[j].size(); k += 6) {
-        //     if (std::accumulate(ss_[j].begin() + k, ss_[j].begin() + k + 6, 0) < std::accumulate(ss_[j].begin() + k - 6, ss_[j].begin() + k, 0)) {
-        //         fall_back = true;
-        //         break;
-        //     }
-        // }
-        // if (fall_back) {
-        //     continue;
-        // }
+        bool fall_back = false;
+        for (int k = 6; k < ss_[i].size(); k += 6) {
+            if (std::accumulate(ss_[i].begin() + k, ss_[i].begin() + k + 6, 0) < std::accumulate(ss_[i].begin() + k - 6, ss_[i].begin() + k, 0)) {
+                fall_back = true;
+                break;
+            }
+        }
+        if (fall_back) {
+            continue;
+        }
 
         double cur_jerk = values_[i];
 
@@ -767,9 +711,9 @@ BezierPiecewiseCurve::~BezierPiecewiseCurve() = default;
  * @param {*}
  * @return {*}
  */    
-std::vector<Eigen::Vector2d> BezierPiecewiseCurve::generateTraj(double sample_gap) {
+std::pair<std::vector<double>, std::vector<double>> BezierPiecewiseCurve::generateTraj(double sample_gap) {
     // Initialize
-    std::vector<Eigen::Vector2d> traj;
+    std::pair<std::vector<double>, std::vector<double>> traj;
 
     // Calculate point for each segment
     // Note that for each segment, the sample gap is the same, which means the sample points' number is different according to the segment's time span
@@ -787,7 +731,8 @@ std::vector<Eigen::Vector2d> BezierPiecewiseCurve::generateTraj(double sample_ga
         // For each seed, generate a point
         for (const auto& current_seed : segment_seeds) {
             double time_stamp = ref_stamps_[segment_index] + (time_span * current_seed);
-            traj.push_back(generatePoint(segment_index, current_seed, time_stamp));
+            traj.first.push_back(generatePoint(segment_index, current_seed, time_stamp)(0));
+            traj.second.push_back(generatePoint(segment_index, current_seed, time_stamp)(1));
         }
     }
 
@@ -800,11 +745,12 @@ std::vector<Eigen::Vector2d> BezierPiecewiseCurve::generateTraj(double sample_ga
  * @param {*}
  * @return {*}
  */    
-Eigen::Vector2d BezierPiecewiseCurve::generatePoint(int segment_index, double remain, double time_stamp) {
+Eigen::Vector3d BezierPiecewiseCurve::generatePoint(int segment_index, double remain, double time_stamp) {
     // Calculate s and d value
     double s_value = s_coefficients_[segment_index][0] * pow(1.0 - remain, 5) + 5.0 * s_coefficients_[segment_index][1] * remain * pow(1.0 - remain, 4) + 10.0 * s_coefficients_[segment_index][2] * pow(remain, 2) * pow(1.0 - remain, 3) + 10.0 * s_coefficients_[segment_index][3] * pow(remain, 3) * pow(1.0 - remain, 2) + 5.0 * s_coefficients_[segment_index][4] * pow(remain, 4) * (1.0 - remain) + s_coefficients_[segment_index][5] * pow(remain, 5);
+    double v_value = 5.0 * ((s_coefficients_[segment_index][1] - s_coefficients_[segment_index][0]) * pow(1.0 - remain, 4) + 4.0 * (s_coefficients_[segment_index][2] - s_coefficients_[segment_index][1]) * pow(1.0 - remain, 3) * remain + 6.0 * (s_coefficients_[segment_index][3] - s_coefficients_[segment_index][2]) * pow(1.0 - remain, 2) * pow(remain, 2) + 4.0 * (s_coefficients_[segment_index][4] - s_coefficients_[segment_index][3]) * (1.0 - remain) * pow(remain, 3) + (s_coefficients_[segment_index][5] - s_coefficients_[segment_index][4]) * pow(remain, 4));
 
-    Eigen::Vector2d point{s_value, time_stamp};
+    Eigen::Vector3d point{s_value, v_value, time_stamp};
 
     return point;
 }
@@ -844,17 +790,20 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
 bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles) {
     // ~Stage I: generate connected cubes paths
     std::vector<std::vector<Cube2D<double>>> cube_paths;
-    st_graph_->runOnce(obstacles, &cube_paths);
+    std::vector<std::pair<double, double>> last_s_range;
+    st_graph_->runOnce(obstacles, &cube_paths, &last_s_range);
 
     // ~Stage II: generate s-t parameters
     std::vector<double> s;
     std::vector<double> t;
-    // velocity_optimizer_->runOnce(cube_paths, start_state_, &s, &t);
+    velocity_optimizer_->runOnce(cube_paths, start_state_, last_s_range, &s, &t);
 
-    // // ~Stage III: generate s-t profile
-    // bezier_curve_traj_generator_ = new BezierPiecewiseCurve(s, t);
+    // ~Stage III: generate s-t profile
+    bezier_curve_traj_generator_ = new BezierPiecewiseCurve(s, t);
+    std::pair<std::vector<double>, std::vector<double>> s_t_profile = bezier_curve_traj_generator_->generateTraj();
 
     // ~Stage IV: supply s-t profile to the standard state
+    planning_state_->loadStProfile(s_t_profile.first, s_t_profile.second);
     
 
     

@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-10 21:33:13
+ * @LastEditTime: 2022-08-10 22:11:36
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -557,7 +557,7 @@ void StGraph::dfsConnectCubes(const std::vector<std::vector<Cube2D<double>>>& in
     }
 }
 
-bool StGraph::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths) {
+bool StGraph::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths, std::vector<std::pair<double, double>>* s_range) {
     // ~Stage I: add obstacles
     loadObstacles(obstacles);
 
@@ -580,6 +580,7 @@ bool StGraph::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, st
     }
 
     *cube_paths = connected_cube_paths;
+    *s_range = last_s_range;
     return true;
 
 }

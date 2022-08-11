@@ -94,19 +94,19 @@ void DecisionMaking::SubVehicle::checkStates() {
     }
     std::cout << std::endl;
 
-    VelocityPlanning::BezierPiecewiseCurve profile_generator = VelocityPlanning::BezierPiecewiseCurve(s, t);
-    std::vector<Eigen::Vector2d> profile = profile_generator.generateTraj();
+    // VelocityPlanning::BezierPiecewiseCurve profile_generator = VelocityPlanning::BezierPiecewiseCurve(s, t);
+    // std::vector<Eigen::Vector2d> profile = profile_generator.generateTraj();
 
-    std::cout << "s: " << std::endl;
-    for (int i = 0; i < profile.size(); i++) {
-        std::cout << profile[i](0) << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "t: " << std::endl;
-    for (int i = 0; i < profile.size(); i++) {
-        std::cout << profile[i](1) << ", ";
-    }
-    std::cout << std::endl;
+    // std::cout << "s: " << std::endl;
+    // for (int i = 0; i < profile.size(); i++) {
+    //     std::cout << profile[i](0) << ", ";
+    // }
+    // std::cout << std::endl;
+    // std::cout << "t: " << std::endl;
+    // for (int i = 0; i < profile.size(); i++) {
+    //     std::cout << profile[i](1) << ", ";
+    // }
+    // std::cout << std::endl;
 
 
 
