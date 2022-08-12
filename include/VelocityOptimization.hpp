@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:08
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-11 13:27:40
+ * @LastEditTime: 2022-08-11 19:12:55
  * @Description: velocity optimization.
  */
 
@@ -31,7 +31,7 @@ class OoqpOptimizationInterface {
      * @param unequal_constraints position limit of each point
      * @param equal_constraints ensure the continuity of the connections between each two cubes
      */    
-    void load(const std::vector<double>& ref_stamps, const std::array<double, 3>& start_constraints, const double& end_s_constraint, std::array<std::vector<double>, 2>& unequal_constraints, std::vector<std::vector<double>>& equal_constraints);
+    void load(const std::vector<double>& ref_stamps, const std::array<double, 3>& start_constraints, const double& end_s_constraint, std::array<std::vector<double>, 2>& unequal_constraints, std::vector<std::vector<double>>& equal_constraints, std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>>& polymonial_unequal_constraints);
 
     /**
      * @brief Run optimization
@@ -52,6 +52,8 @@ class OoqpOptimizationInterface {
      * @return {*}
      */    
     void calculateQcMatrix(Eigen::SparseMatrix<double, Eigen::RowMajor>& Q, Eigen::VectorXd& c);
+
+    void calculateCdfMatrix(Eigen::SparseMatrix<double, Eigen::RowMajor>& C, Eigen::VectorXd& d, Eigen::VectorXd& f);
 
     /**
      * @brief Calculate equal constraints, note that position constraints in the connection don't need to be considered
@@ -76,18 +78,23 @@ class OoqpOptimizationInterface {
      * @return {*}
      */
     bool solve(const Eigen::SparseMatrix<double, Eigen::RowMajor>& Q,
-                    const Eigen::VectorXd& c,
-                    const Eigen::SparseMatrix<double, Eigen::RowMajor>& A,
-                    const Eigen::VectorXd& b,
-                    Eigen::Matrix<char, Eigen::Dynamic, 1>& useLowerLimitForX, Eigen::Matrix<char, Eigen::Dynamic, 1>& useUpperLimitForX, 
-                    Eigen::VectorXd& lowerLimitForX, Eigen::VectorXd& upperLimitForX, 
-                    std::vector<double>* optimized_values, double* objective_value);
+                                          const Eigen::VectorXd& c,
+                                          const Eigen::SparseMatrix<double, Eigen::RowMajor>& A,
+                                          const Eigen::VectorXd& b,
+                                          const Eigen::SparseMatrix<double, Eigen::RowMajor>& C,
+                                          const Eigen::VectorXd& d, const Eigen::VectorXd& f,
+                                          Eigen::Matrix<char, Eigen::Dynamic, 1>& useLowerLimitForX, 
+                                          Eigen::Matrix<char, Eigen::Dynamic, 1>& useUpperLimitForX, 
+                                          Eigen::VectorXd& lowerLimitForX, Eigen::VectorXd& upperLimitForX, 
+                                          std::vector<double>* optimized_values, 
+                                          double* objective_value);
 
     std::vector<double> ref_stamps_;
     std::array<double, 3> start_constraints_;
     double end_s_constraint_;
     std::array<std::vector<double>, 2> unequal_constraints_;
     std::vector<std::vector<double>> equal_constraints_;
+    std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>> polymonial_unequal_constraints_;
 
 
 
@@ -101,13 +108,17 @@ class VelocityOptimizer {
     VelocityOptimizer();
     ~VelocityOptimizer();
 
-    bool runOnce(const std::vector<std::vector<Cube2D<double>>>& cube_paths, const std::array<double, 3>& start_state, std::vector<std::pair<double, double>>& last_s_range, std::vector<double>* s, std::vector<double>* t);
-
-    void runSingleCubesPath(const std::vector<Cube2D<double>>& cube_path, const std::array<double, 3>& start_state, const double& end_s, int index);
+    bool runOnce(const std::vector<std::vector<Cube2D<double>>>& cube_paths, const std::array<double, 3>& start_state, std::vector<std::pair<double, double>>& last_s_range, const double& max_velocity, const double& min_velocity, const double& max_acceleration, const double& min_acceleration, std::vector<double>* s, std::vector<double>* t);
+    
+    void runSingleCubesPath(const std::vector<Cube2D<double>>& cube_path, const std::array<double, 3>& start_state, const double& end_s, const double& max_velocity, const double& min_velocity, const double& max_acceleration, const double& min_acceleration, int index);
     
     std::array<std::vector<double>, 2> generateUnequalConstraints(const std::vector<Cube2D<double>>& cube_path);
 
     std::vector<std::vector<double>> generateEqualConstraints(const std::vector<Cube2D<double>>& cube_path);
+
+    std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>> generatePolynimalUnequalConstraints(const std::vector<Cube2D<double>>& cube_path, const double& max_velocity, const double& min_velocity, const double& max_acceleration, const double& min_acceleration);
+
+    
 
     OoqpOptimizationInterface* ooqp_itf_{nullptr};
 
@@ -153,9 +164,11 @@ class VelocityPlanner {
 
     StGraph* st_graph_{nullptr};
     VelocityOptimizer* velocity_optimizer_{nullptr};
-    std::array<double, 3> start_state_;
     BezierPiecewiseCurve* bezier_curve_traj_generator_{nullptr};
     DecisionMaking::StandardState* planning_state_{nullptr};
+
+    std::array<double, 3> start_state_;
+
 };
 
 } // End of namespace VelocityPlanning

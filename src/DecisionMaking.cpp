@@ -43,76 +43,21 @@ void DecisionMaking::SubVehicle::checkStates() {
     // left_lane_velocity_planning_thread.join();
     // right_lane_velocity_planning_thread.join();
 
-    // debug不使用线程
-    this->velocityPlanningForState(&(this->states_set_[StateNames::FORWARD]), obstacles, true);
-    this->velocityPlanningForState(&(this->states_set_[StateNames::TURN_LEFT]), obstacles, true);
-    this->velocityPlanningForState(&(this->states_set_[StateNames::TURN_RIGHT]), obstacles, true);
+    // // debug不使用线程
+    // this->velocityPlanningForState(&(this->states_set_[StateNames::FORWARD]), obstacles, true);
+    // this->velocityPlanningForState(&(this->states_set_[StateNames::TURN_LEFT]), obstacles, true);
+    // this->velocityPlanningForState(&(this->states_set_[StateNames::TURN_RIGHT]), obstacles, true);
+
+
+
 
     // DEBUG
-
-    VelocityPlanning::StGraph::Param param;
-    VelocityPlanning::StGraph st_graph = VelocityPlanning::StGraph(states_set_[StateNames::FORWARD].getTotalTrajectory(), param, 5.0);
-    st_graph.loadObstacles(obstacles);
-    st_graph.loadAccelerationLimitation();
-    // st_graph.visualization();
-
-    std::vector<std::vector<VelocityPlanning::Cube2D<double>>> cube_cols;
-    std::vector<std::pair<double, double>> last_s_range;
-    bool is_generation_success = st_graph.generateCubes(&cube_cols, &last_s_range);
-
-    for (int i = 0; i < cube_cols.size(); i++) {
-        for (int j = 0; j < cube_cols[i].size(); j++) {
-            std::cout << "col: " << i << ", num: " << j << std::endl;
-            cube_cols[i][j].print();
-        }
-    }
-
-    // Get the last limitation
-
-    
-
-    std::vector<std::vector<VelocityPlanning::Cube2D<double>>> cube_paths;
-    bool is_connection_success = st_graph.connectCubes(cube_cols, &cube_paths); 
-
-    VelocityPlanning::VelocityOptimizer velocity_optimizer = VelocityPlanning::VelocityOptimizer();
-
-    std::array<double, 3> start_state = {0.0, 5.0, 0.0};
-
-    std::vector<double> s;
-    std::vector<double> t;
-
-    velocity_optimizer.runOnce(cube_paths, start_state, last_s_range, &s, &t);
-
-    std::cout << "s: " << std::endl;
-    for (int i = 0; i < s.size(); i++) {
-        std::cout << s[i] << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "t: " << std::endl;
-    for (int i = 0; i < t.size(); i++) {
-        std::cout << t[i] << ", ";
-    }
-    std::cout << std::endl;
-
-    // VelocityPlanning::BezierPiecewiseCurve profile_generator = VelocityPlanning::BezierPiecewiseCurve(s, t);
-    // std::vector<Eigen::Vector2d> profile = profile_generator.generateTraj();
-
-    // std::cout << "s: " << std::endl;
-    // for (int i = 0; i < profile.size(); i++) {
-    //     std::cout << profile[i](0) << ", ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "t: " << std::endl;
-    // for (int i = 0; i < profile.size(); i++) {
-    //     std::cout << profile[i](1) << ", ";
-    // }
-    // std::cout << std::endl;
-
-
-
-
-
-
+    VelocityPlanning::VelocityPlanner* v_planner_forward = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::FORWARD]));
+    v_planner_forward->runOnce(obstacles);
+    // VelocityPlanning::VelocityPlanner* v_planner_left = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::TURN_LEFT]));
+    // v_planner_left->runOnce(obstacles);
+    // VelocityPlanning::VelocityPlanner* v_planner_right = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::TURN_RIGHT]));
+    // v_planner_right->runOnce(obstacles);
     // END DEBUG
 
     // 设置三大状态都不可行(for debug)

@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-10 22:12:29
+ * @LastEditTime: 2022-08-12 19:24:27
  * @Description: s-t graph
  */
 
@@ -73,6 +73,9 @@ class GridMap2D {
     void addCubesVisualization(const std::vector<Cube2D<int>>& grid_cubes);
 
     // DEBUG
+
+    void print();
+
     void visualization();
 
     void visualization(const std::vector<Cube2D<int>>& cubes);
@@ -91,7 +94,7 @@ class StGraph {
         double occupied_width = 2.0;
         double occupied_length = 5.0;
         double s_max = 50.0;
-        double t_max = 10.0;
+        double t_max = 5.0;
         double s_resolution = 0.1;
         double t_resolution = 0.1;
         double acc_max = 1.5;
@@ -143,6 +146,8 @@ class StGraph {
     void visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths);
 
     void visualization();
+
+    void print();
 
 
     GridMap2D* grid_map_2D_{nullptr};

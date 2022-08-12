@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-10 22:11:36
+ * @LastEditTime: 2022-08-11 20:32:10
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -23,6 +23,10 @@ std::vector<cv::Point> GridMap2D::eigenToCvPoint(const std::vector<Eigen::Vector
         cv_points.emplace_back(cv::Point(points[i](0), points[i](1)));
     }
     return cv_points;
+}
+
+void GridMap2D::print() {
+    std::cout << mat_ << std::endl;
 }
 
 void GridMap2D::visualization() {
@@ -74,9 +78,9 @@ bool GridMap2D::expandSingleColumn(const int& grid_t_start, const int& grid_t_en
     // Judge failed expansion
     if (cur_s_start >= max_s_grid) {
 
-        // DEBUG
-        std::cout << "cur s start: " << cur_s_start << ", max s grid: " << max_s_grid << std::endl;
-        // END DEBUG
+        // // DEBUG
+        // std::cout << "cur s start: " << cur_s_start << ", max s grid: " << max_s_grid << std::endl;
+        // // END DEBUG
 
         return false;
     }
@@ -259,6 +263,10 @@ void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
     std::cout << "load obstacle success" << std::endl;
     // END DEBUG
 
+    // DEBUG
+    std::cout << "Obstacle trahectory number: " << obstacle.getPredictedTrajectoryNumber() << std::endl;
+    // END DEBUG
+
     for (int i = 0; i < obstacle.getPredictedTrajectoryNumber(); i++) {
         // Construct occupied area
         DecisionMaking::RSS::OccupationArea cur_obs_occupy_area = DecisionMaking::RSS::OccupationArea(obstacle, i, 1);
@@ -270,8 +278,14 @@ void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
         int cur_obs_end_collision_index = -1;
         bool is_collision = DecisionMaking::RSS::occupationInteractionJudgement(ego_occupy_area_, cur_obs_occupy_area, &ego_vehicle_start_collision_index, &ego_vehicle_end_collision_index, &cur_obs_start_collision_index, &cur_obs_end_collision_index);
 
-        if (!is_collision) continue;
+        if (!is_collision) {
+            
+            // DEBUG
+            std::cout << "Without collision" << std::endl;
+            // END DEBUG
 
+            continue;
+        }
         // Calculate collision information
         double t_start = (ego_vehicle_start_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
         double t_end = (ego_vehicle_end_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
@@ -310,11 +324,11 @@ void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
         // Convert
         std::vector<Eigen::Vector2i> grid_positions = realValuesToGridPoss(real_vertice);
 
-        // // DEBUG
-        // for (int i = 0; i < 4; i++) {
-        //     std::cout << grid_positions[i] << std::endl;
-        // }
-        // // END DEBUG
+        // DEBUG
+        for (int i = 0; i < 4; i++) {
+            std::cout << grid_positions[i] << std::endl;
+        }
+        // END DEBUG
 
         // Picture the banned area to grid map
         grid_map_2D_->fillObstacleBannedArea(grid_positions);
@@ -592,6 +606,10 @@ void StGraph::visualization(const std::vector<std::vector<Cube2D<int>>>& cube_pa
 
 void StGraph::visualization() {
     grid_map_2D_->visualization();
+}
+
+void StGraph::print() {
+    grid_map_2D_->print();
 }
 
 

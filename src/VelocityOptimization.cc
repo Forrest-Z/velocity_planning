@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-11 15:06:15
+ * @LastEditTime: 2022-08-12 19:43:17
  * @Description: velocity optimization.
  */
 
@@ -22,12 +22,17 @@ OoqpOptimizationInterface::~OoqpOptimizationInterface() = default;
  * @param unequal_constraints position limit of each point
  * @param equal_constraints ensure the continuity of the connections between each two cubes
  */    
-void OoqpOptimizationInterface::load(const std::vector<double>& ref_stamps, const std::array<double, 3>& start_constraints, const double& end_s_constraint, std::array<std::vector<double>, 2>& unequal_constraints, std::vector<std::vector<double>>& equal_constraints) {
+void OoqpOptimizationInterface::load(const std::vector<double>& ref_stamps, const std::array<double, 3>& start_constraints, const double& end_s_constraint, std::array<std::vector<double>, 2>& unequal_constraints, std::vector<std::vector<double>>& equal_constraints, std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>>& polymonial_unequal_constraints) {
     ref_stamps_ = ref_stamps;
     start_constraints_ = start_constraints;
     end_s_constraint_ = end_s_constraint;
     unequal_constraints_ = unequal_constraints;
     equal_constraints_ = equal_constraints;
+    polymonial_unequal_constraints_ = polymonial_unequal_constraints;
+
+    // // DEBUG
+    // std::cout << "Load successful" << std::endl;
+    // // END DEBUG
 }
 
 /**
@@ -96,12 +101,24 @@ void OoqpOptimizationInterface::optimizeSingleDim(const std::array<double, 3>& s
     // std::cout << "------------------" << std::endl;
     // // END DEBUG
 
-    // ~Stage IV: optimization
+    // // DEBUG
+    // std::cout << "prepare success" << std::endl;
+    // // END DBEUG
+
+    // ~Stage IV: calculate polymonial unequal constraints
+    Eigen::SparseMatrix<double, Eigen::RowMajor> C;
+    Eigen::VectorXd d;
+    Eigen::VectorXd f;
+    calculateCdfMatrix(C, d, f);
+
+
+
+    // ~Stage V: optimization
     std::vector<double> optimized_values;
     double objective_value = 0.0;
-    bool optimization_status = solve(Q, c, A, b, useLowerLimitForX, useUpperLimitForX, lowerLimitForX, upperLimitForX, &optimized_values, &objective_value);
+    bool optimization_status = solve(Q, c, A, b, C, d, f, useLowerLimitForX, useUpperLimitForX, lowerLimitForX, upperLimitForX, &optimized_values, &objective_value);
 
-    // ~Stage V: store information
+    // ~Stage VI: store information
     optimized_data_ = optimized_values;
     optimization_res_ = optimization_status;
     objective_value_ = objective_value;
@@ -146,6 +163,34 @@ void OoqpOptimizationInterface::calculateQcMatrix(Eigen::SparseMatrix<double, Ei
     c.resize(variables_num);
     c.setZero();
 }
+
+void OoqpOptimizationInterface::calculateCdfMatrix(Eigen::SparseMatrix<double, Eigen::RowMajor>& C, Eigen::VectorXd& d, Eigen::VectorXd& f) {
+    // Parse data
+    std::vector<std::vector<double>> polynomial_coefficients = std::get<0>(polymonial_unequal_constraints_);
+    std::vector<double> polynomial_lower_boundaries = std::get<1>(polymonial_unequal_constraints_);
+    std::vector<double> polynomial_upper_boundaries = std::get<2>(polymonial_unequal_constraints_);
+    int n = static_cast<int>(polynomial_coefficients.size());
+
+    // Initialize
+    int variables_num = (static_cast<int>(ref_stamps_.size()) - 1) * 6;
+    Eigen::MatrixXd C_matrix = Eigen::MatrixXd::Zero(n, variables_num);
+    Eigen::MatrixXd d_matrix = Eigen::MatrixXd::Zero(n, 1);
+    Eigen::MatrixXd f_matrix = Eigen::MatrixXd::Zero(n, 1);
+
+    // Transform
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < variables_num; j++) {
+            C_matrix(i, j) = polynomial_coefficients[i][j];
+        }
+        d_matrix(i, 0) = polynomial_lower_boundaries[i];
+        f_matrix(i, 0) = polynomial_upper_boundaries[i];
+    }
+
+    C = C_matrix.sparseView();
+    d = d_matrix;
+    f = f_matrix;
+}
+
 
 // DEBUG
 // Test the optimization process without the end point constraint
@@ -251,9 +296,9 @@ void OoqpOptimizationInterface::calculateAbMatrix(const std::array<double, 3>& s
         int constraint_index = i + 4;
         for (int j = 0; j < variables_num; j++) {
             
-            // DEBUG: check this logic
-            assert(static_cast<int>(equal_constraints[i].size()) == variables_num);
-            // END DEBUG
+            // // DEBUG: check this logic
+            // assert(static_cast<int>(equal_constraints[i].size()) == variables_num);
+            // // END DEBUG
 
             A_matrix(constraint_index, j) = equal_constraints[i][j];
         }
@@ -310,6 +355,8 @@ bool OoqpOptimizationInterface::solve(const Eigen::SparseMatrix<double, Eigen::R
                 const Eigen::VectorXd& c,
                 const Eigen::SparseMatrix<double, Eigen::RowMajor>& A,
                 const Eigen::VectorXd& b,
+                const Eigen::SparseMatrix<double, Eigen::RowMajor>& C,
+                const Eigen::VectorXd& d, const Eigen::VectorXd& f,
                 Eigen::Matrix<char, Eigen::Dynamic, 1>& useLowerLimitForX, Eigen::Matrix<char, Eigen::Dynamic, 1>& useUpperLimitForX, 
                 Eigen::VectorXd& lowerLimitForX, Eigen::VectorXd& upperLimitForX, std::vector<double>* optimized_values, double* objective_value) {
     
@@ -324,6 +371,10 @@ bool OoqpOptimizationInterface::solve(const Eigen::SparseMatrix<double, Eigen::R
     // std::cout << "upperLimitForX: " << upperLimitForX << std::endl;
     // // END DEBUG
 
+    // // DEBUG
+    // std::cout << "solve once" << std::endl;
+    // // END DEBUG
+
     Eigen::VectorXd x;
     int nx = Q.rows();
     x.setZero(nx);
@@ -331,20 +382,39 @@ bool OoqpOptimizationInterface::solve(const Eigen::SparseMatrix<double, Eigen::R
     auto ccopy(c);
     auto Acopy(A);
     auto bcopy(b);
+    auto Ccopy(C);
+    auto dcopy(d);
+    auto fcopy(f);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> Q_triangular = Q.triangularView<Eigen::Lower>();
     
     // Compress sparse Eigen matrices (refer to Eigen Sparse Matrix user manual)
     Q_triangular.makeCompressed();
     Acopy.makeCompressed();
+    Ccopy.makeCompressed();
+
+    assert(Ccopy.rows() == dcopy.size());
+    assert(Ccopy.rows() == fcopy.size());
+
+    // Calculate used flag for polynomial inequal constraints
+    Eigen::Matrix<char, Eigen::Dynamic, 1> useLowerLimitForPolynomialInequalConstraints;
+    Eigen::Matrix<char, Eigen::Dynamic, 1> useUpperLimitForPolynomialInequalConstraints;
+    useLowerLimitForPolynomialInequalConstraints.setConstant(static_cast<int>(dcopy.size()), 1);
+    useUpperLimitForPolynomialInequalConstraints.setConstant(static_cast<int>(dcopy.size()), 1);
 
     // Initialize new problem formulation.
     int my = bcopy.size();
-    int mz = 0; // TODO: check this parameter, unequal constraint , set with 0
+    int mz = dcopy.size(); 
     int nnzQ = Q_triangular.nonZeros();
-    // int nnzA = Acopy.nonZeros();
     int nnzA = Acopy.nonZeros();
-    int nnzC = 0; // Unequal constraint , set with 0
+    int nnzC = Ccopy.nonZeros(); // Unequal constraint , set with 0
+
+
+    // DEBUG
+    // Set the number of the inequal constraints to 0 to test the remain function
+    mz = 0;
+    nnzC = 0;
+    // END DEBUG
 
     QpGenSparseMa27* qp = new QpGenSparseMa27(nx, my, mz, nnzQ, nnzA, nnzC);
     
@@ -370,15 +440,30 @@ bool OoqpOptimizationInterface::solve(const Eigen::SparseMatrix<double, Eigen::R
     double* dA = Acopy.valuePtr();
     double* bA = &bcopy.coeffRef(0);
     
-    int krowC[] = {};
-    int jcolC[] = {};
-    double dC[] = {};
-    double clow[] = {};
-    char iclow[] = {};
-    double cupp[] = {};
-    char icupp[] = {};
+    // // DEBUG
+    // int irowC[] = {};
+    // int jcolC[] = {};
+    // double dC[] = {};
+    // double clow[] = {};
+    // char iclow[] = {};
+    // double cupp[] = {};
+    // char icupp[] = {};
+    // // END DEBUG
 
-    QpGenData *prob = (QpGenData *)qp->copyDataFromSparseTriple(cp, irowQ, nnzQ, jcolQ, dQ, xlow, ixlow, xupp, ixupp, irowA, nnzA, jcolA, dA, bA, krowC, nnzC, jcolC, dC, clow, iclow, cupp, icupp);
+    std::vector<int> irowC_vec, jcolC_vec;
+    Tools::calculateParam(Ccopy, &irowC_vec, &jcolC_vec);
+    int irowC[irowC_vec.size()], jcolC[jcolC_vec.size()];
+    memcpy(irowC, &irowC_vec[0], irowC_vec.size() * sizeof(irowC_vec[0]));
+    memcpy(jcolC, &jcolC_vec[0], jcolC_vec.size() * sizeof(jcolC_vec[0]));
+    double* dC = Ccopy.valuePtr();
+    double* clow = &dcopy.coeffRef(0);
+    char* iclow = &useLowerLimitForPolynomialInequalConstraints.coeffRef(0);
+    double* cupp = &fcopy.coeffRef(0);
+    char* icupp = &useUpperLimitForPolynomialInequalConstraints.coeffRef(0);
+
+
+
+    QpGenData *prob = (QpGenData *)qp->copyDataFromSparseTriple(cp, irowQ, nnzQ, jcolQ, dQ, xlow, ixlow, xupp, ixupp, irowA, nnzA, jcolA, dA, bA, irowC, nnzC, jcolC, dC, clow, iclow, cupp, icupp);
     
     // Create object to store problem variables
     QpGenVars* vars = (QpGenVars*)qp->makeVariables(prob);
@@ -426,15 +511,18 @@ bool OoqpOptimizationInterface::solve(const Eigen::SparseMatrix<double, Eigen::R
 
 VelocityOptimizer::VelocityOptimizer() {
     ooqp_itf_ = new OoqpOptimizationInterface();
+
 }
 
 VelocityOptimizer::~VelocityOptimizer() = default;
 
-bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& cube_paths, const std::array<double, 3>& start_state, std::vector<std::pair<double, double>>& last_s_range, std::vector<double>* s, std::vector<double>* t) {
+bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& cube_paths, const std::array<double, 3>& start_state, std::vector<std::pair<double, double>>& last_s_range, const double& max_velocity, const double& min_velocity, const double& max_acceleration, const double& min_acceleration, std::vector<double>* s, std::vector<double>* t) {
+
+
 
     // ~Stage I: determine the s sampling number due to the number of the available paths
     int available_cube_paths_num = cube_paths.size();
-    const int optimization_maximum_number = 50;
+    const int optimization_maximum_number = 20;
     int s_sampling_number = static_cast<int>(optimization_maximum_number / available_cube_paths_num);
     int practical_optimization_number = available_cube_paths_num * s_sampling_number;
 
@@ -451,21 +539,27 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
 
     // ~Stage III: optimization
     int n = cube_paths.size() * sampled_s.size();
+
+
     ss_.resize(n);
     tt_.resize(n);
     ress_.resize(n);
     values_.resize(n);
 
+
+
     for (int i = 0; i < cube_paths.size(); i++) {
         for (int j = 0; j < sampled_s.size(); j++) {
             int index = i * sampled_s.size() + j;
-            runSingleCubesPath(cube_paths[i], start_state, sampled_s[j], index);
+            runSingleCubesPath(cube_paths[i], start_state, sampled_s[j], max_velocity, min_velocity, max_acceleration, min_acceleration, index);
         }
     }
 
     // ~Stage III: select the res with the optimal jerk
     // Minimum jerk
-    double min_jerk = static_cast<double>(INT_MAX);
+    // double min_jerk = static_cast<double>(INT_MAX);
+
+    double max_s = static_cast<double>(INT_MIN);
     int win_index = -1;
 
 
@@ -483,28 +577,35 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
             continue;
         }
 
-        double cur_jerk = values_[i];
+        // double cur_jerk = values_[i];
+        // if (cur_jerk < min_jerk) {
+        //     min_jerk = cur_jerk;
+        //     win_index = i;
+        // }
 
-        // DEBUG
-        std::cout << "Number: " << i << std::endl;
-        std::cout << "Jerk: " << cur_jerk << std::endl;
-        std::cout << "s: " << std::endl;
-        for (int j = 0; j < ss_[i].size(); j++) {
-            std::cout << ss_[i][j] << ", ";
-        }
-        std::cout << std::endl;
-        std::cout << "t: " << std::endl;
-        for (int j = 0; j < tt_[i].size(); j++) {
-            std::cout << tt_[i][j] << ", ";
-        }
-        std::cout << std::endl;
-        // END DEBUG
-
-
-        if (cur_jerk < min_jerk) {
-            min_jerk = cur_jerk;
+        double cur_s = ss_[i].back();
+        if (cur_s > max_s) {
+            max_s = cur_s;
             win_index = i;
         }
+
+        // // DEBUG
+        // std::cout << "Number: " << i << std::endl;
+        // std::cout << "Jerk: " << cur_jerk << std::endl;
+        // std::cout << "s: " << std::endl;
+        // for (int j = 0; j < ss_[i].size(); j++) {
+        //     std::cout << ss_[i][j] << ", ";
+        // }
+        // std::cout << std::endl;
+        // std::cout << "t: " << std::endl;
+        // for (int j = 0; j < tt_[i].size(); j++) {
+        //     std::cout << tt_[i][j] << ", ";
+        // }
+        // std::cout << std::endl;
+        // // END DEBUG
+
+
+
 
     }
 
@@ -516,15 +617,9 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
     *t = tt_[win_index];
     return true;
 
-    
-    
-
-    
-
-
 }
 
-void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cube_path, const std::array<double, 3>& start_state, const double& end_s, int index) {
+void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cube_path, const std::array<double, 3>& start_state, const double& end_s, const double& max_velocity, const double& min_velocity, const double& max_acceleration, const double& min_acceleration, int index) {
 
     Cube2D<double> last_cube = cube_path.back();
     if (end_s > last_cube.s_end_ || end_s < last_cube.s_start_) {
@@ -546,13 +641,13 @@ void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cu
     // ~Stage II: calculate unequal constraints for variables (except start point and end point)
     std::array<std::vector<double>, 2> unequal_constraints = generateUnequalConstraints(cube_path);
 
-    // DEBUG
-    std::cout << "Index: " << index << std::endl;
-    std::cout << "Unequal constraints: " << std::endl;
-    for (int i = 0; i < unequal_constraints[0].size(); i++) {
-        std::cout << "Lower: " << unequal_constraints[0][i] << ", upper: " << unequal_constraints[1][i] << std::endl;
-    }
-    // END DEBUG
+    // // DEBUG
+    // std::cout << "Index: " << index << std::endl;
+    // std::cout << "Unequal constraints: " << std::endl;
+    // for (int i = 0; i < unequal_constraints[0].size(); i++) {
+    //     std::cout << "Lower: " << unequal_constraints[0][i] << ", upper: " << unequal_constraints[1][i] << std::endl;
+    // }
+    // // END DEBUG
 
     // // DEBUG
     // std::cout << "unequal constraints calculation success" << std::endl;
@@ -561,14 +656,19 @@ void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cu
     // ~Stage III: calculate equal constraints to ensure the continuity
     std::vector<std::vector<double>> equal_constraints = generateEqualConstraints(cube_path);
 
+    // ~Stage IV: calculate polynomial inequality constraints
+    std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>> polynomial_unequal_constraints = generatePolynimalUnequalConstraints(cube_path, max_velocity, min_velocity, max_acceleration, min_acceleration);
+
+
+
     // // DEBUG
     // std::cout << "equal constraints calculation success" << std::endl;
     // // END DEBUG
 
-    // ~Stage IV: optimization
+    // ~Stage V: optimization
     std::vector<double> optimized_s;
     double objective_value = 0.0;
-    ooqp_itf_->load(ref_stamps, start_state, end_s, unequal_constraints, equal_constraints);
+    ooqp_itf_->load(ref_stamps, start_state, end_s, unequal_constraints, equal_constraints, polynomial_unequal_constraints);
     bool optimization_res = ooqp_itf_->runOnce(&optimized_s, &objective_value);
 
     // // DEBUG
@@ -676,6 +776,49 @@ std::vector<std::vector<double>> VelocityOptimizer::generateEqualConstraints(con
     return equal_constraints;
 }
 
+std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>> VelocityOptimizer::generatePolynimalUnequalConstraints(const std::vector<Cube2D<double>>& cube_path, const double& max_velocity, const double& min_velocity, const double& max_acceleration, const double& min_acceleration) {
+    // Initialize
+    int variables_num = static_cast<int>(cube_path.size()) * 6;
+    int n = static_cast<int>(cube_path.size());
+    std::vector<std::vector<double>> coefficients;
+    std::vector<double> lower_boundaries;
+    std::vector<double> upper_boundaries;
+    
+    // Supply velocity constraints
+    for (int i = 0; i < n; i++) {
+        int current_cube_start_index = i * 6;
+        for (int j = current_cube_start_index; j < current_cube_start_index + 5; j++) {
+            std::vector<double> current_velocity_constraints_coefficients(variables_num, 0.0);
+            current_velocity_constraints_coefficients[j + 1] = 5.0;
+            current_velocity_constraints_coefficients[j] = -5.0;
+            upper_boundaries.emplace_back(max_velocity);
+            lower_boundaries.emplace_back(min_velocity);
+            coefficients.emplace_back(current_velocity_constraints_coefficients);
+        }
+    }
+
+    // Supply acceleration constraints
+    for (int i = 0; i < n; i++) {
+        int current_cube_start_index = i * 6;
+        for (int j = current_cube_start_index; j < current_cube_start_index + 4; j++) {
+            std::vector<double> current_acceleratrion_constraints_coefficients(variables_num, 0.0);
+            current_acceleratrion_constraints_coefficients[j] = 20.0;
+            current_acceleratrion_constraints_coefficients[j + 1] = -40.0;
+            current_acceleratrion_constraints_coefficients[j + 2] = 20.0;
+            upper_boundaries.emplace_back(max_acceleration);
+            lower_boundaries.emplace_back(min_acceleration);
+            coefficients.emplace_back(current_acceleratrion_constraints_coefficients);
+        }
+    }
+
+    std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>> polynomial_unequal_constraints = std::make_tuple(coefficients, lower_boundaries, upper_boundaries);
+
+    return polynomial_unequal_constraints;
+
+
+    
+}
+
 
 
 BezierPiecewiseCurve::BezierPiecewiseCurve(const std::vector<double>& s, std::vector<double>& ref_stamps) {
@@ -760,7 +903,11 @@ Eigen::Vector3d BezierPiecewiseCurve::generatePoint(int segment_index, double re
 
 
 VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
+
     planning_state_ = current_state;
+    if (!current_state->getCapability()) {
+        return;
+    }
 
     // find nearest point
     int current_position_index_in_trajectory = Tools::findNearestPositionIndexInCurve(current_state->getTotalTrajectory(), current_state->getVehicleStartState().position_, current_state->getVehicleCurrentPositionIndexInTrajectory());
@@ -771,10 +918,41 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
     
     // Cut path segment
     PathPlanningUtilities::Curve total_curve = current_state->getTotalTrajectory();
-    int total_length = current_state->getTrajectoryLength();
+
+    // // DEBUG
+    // std::cout << "Curve length: " << total_curve.size() << std::endl;
+    // // END DEBUG
+
+    int total_length = total_curve.size();
+
+    // // DEBUG
+    // std::cout << "Total length: " << total_length << std::endl;
+    // std::cout << "Current position index in trajectory: " << current_position_index_in_trajectory << std::endl;
+    // // END DEBUG
+
     int cut_end_point = std::min(total_length - current_position_index_in_trajectory, static_cast<int>(st_graph_param.s_max / LANE_GAP_DISTANCE));
-    st_graph_param.s_max = (cut_end_point - current_position_index_in_trajectory) * LANE_GAP_DISTANCE;
+
+    // // DEBUG
+    // std::cout << "Cut end point: " << cut_end_point << std::endl;
+    // // END DEBUG
+
+    // st_graph_param.s_max = (cut_end_point - current_position_index_in_trajectory) * LANE_GAP_DISTANCE;
     PathPlanningUtilities::Curve velocity_planning_curve{total_curve.begin() + current_position_index_in_trajectory, total_curve.begin() + cut_end_point};
+
+    // // DEBUG
+    // std_msgs::ColorRGBA c;
+    // c.a = 1.0;
+    // c.r = 1.0;
+    // c.g = 0.0;
+    // c.b = 0.0;
+    // visualization_msgs::Marker curve_marker = VisualizationMethods::visualizeCurvesToMarker(total_curve, c, 123456);
+    // visualization_msgs::MarkerArray marker_array;
+    // marker_array.markers.push_back(curve_marker);
+
+    // pub.publish(marker_array);
+
+    // // END DEBUG
+
 
     // Get vehicle current movement
     PathPlanningUtilities::VehicleMovementState vehicle_movement_state = current_state->getVehicleCurrentMovement();
@@ -788,22 +966,67 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
 }
 
 bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles) {
+    
+    if (!planning_state_->getCapability()) {
+        return false;
+    }
+
     // ~Stage I: generate connected cubes paths
     std::vector<std::vector<Cube2D<double>>> cube_paths;
     std::vector<std::pair<double, double>> last_s_range;
-    st_graph_->runOnce(obstacles, &cube_paths, &last_s_range);
+
+    // // DEBUG
+    // std::cout << "Obstacle number: " << obstacles.size() << std::endl; 
+    // // END DEBUG
+
+    bool graph_success = st_graph_->runOnce(obstacles, &cube_paths, &last_s_range);
+    if (!graph_success) {
+        planning_state_->setSafety(false);
+        std::cout << "State name: " << planning_state_->getStateName() << " is not safe due to graph failure." << std::endl;
+        return false;
+    }
+
+
+
+    // // DEBUG
+    // st_graph_->visualization();
+    // // END DEBUG
 
     // ~Stage II: generate s-t parameters
     std::vector<double> s;
     std::vector<double> t;
-    velocity_optimizer_->runOnce(cube_paths, start_state_, last_s_range, &s, &t);
+
+    std::cout << "State name: " << planning_state_->getStateName() << std::endl;
+    std::cout << "Max velocity: " << planning_state_->getVelocityLimitationMax() << ", min velocity: " << planning_state_->getVelocityLimitationMin() << std::endl;
+    std::cout << "Max acceleration: " << planning_state_->getAccelerationLimitationMax() << ", min acceleration: " << planning_state_->getAccelerationLimitationMin() << std::endl;
+
+    velocity_optimizer_ = new VelocityPlanning::VelocityOptimizer();
+    bool optimization_success = velocity_optimizer_->runOnce(cube_paths, start_state_, last_s_range, planning_state_->getVelocityLimitationMax(), planning_state_->getVelocityLimitationMin(), planning_state_->getAccelerationLimitationMax(), planning_state_->getAccelerationLimitationMin(), &s, &t);
+
+    if (optimization_success) {
+        std::cout << "Final selected s: " << s.back() << std::endl;
+    } 
+
+    if (!optimization_success) {
+        planning_state_->setSafety(false);
+        std::cout << "State name: " << planning_state_->getStateName() << " is not safe due to optimization failure." << std::endl;
+        return false;
+    }
 
     // ~Stage III: generate s-t profile
     bezier_curve_traj_generator_ = new BezierPiecewiseCurve(s, t);
-    std::pair<std::vector<double>, std::vector<double>> s_t_profile = bezier_curve_traj_generator_->generateTraj();
+    std::pair<std::vector<double>, std::vector<double>> s_v_profile = bezier_curve_traj_generator_->generateTraj();
+
+    // DEBUG
+    
+    // END DEBUG
 
     // ~Stage IV: supply s-t profile to the standard state
-    planning_state_->loadStProfile(s_t_profile.first, s_t_profile.second);
+    planning_state_->loadStProfile(s_v_profile.first, s_v_profile.second);
+
+    return true;
+
+
     
 
     

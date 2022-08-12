@@ -354,7 +354,7 @@ class StandardState {
                 double s = LANE_GAP_DISTANCE * (i - vehicle_current_position_index_);
                 int lower_index = std::lower_bound(s_.begin(), s_.end(), s) - s_.begin();
                 if (lower_index == s_.size()) {
-                    printf("[VelocityPlanning] current s excesses the upper bound.\n");
+                    // printf("[VelocityPlanning] current s excesses the upper bound.\n");
                     continue;
                 }
                 double velocity = v_[lower_index];
