@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:08
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-11 19:12:55
+ * @LastEditTime: 2022-08-12 19:54:55
  * @Description: velocity optimization.
  */
 
@@ -140,7 +140,7 @@ class BezierPiecewiseCurve {
      * @param {*}
      * @return {*}
      */    
-    std::pair<std::vector<double>, std::vector<double>> generateTraj(double sample_gap = 0.01);
+    std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> generateTraj(double sample_gap = 0.01);
 
     /**
      * @brief Calculate single point 

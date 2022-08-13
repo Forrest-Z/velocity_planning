@@ -781,7 +781,10 @@ bool DecisionMaking::SubVehicle::motionPlanningUncapableJudgement() {
 double DecisionMaking::SubVehicle::calcMaxKappaForState(const StandardState &state, size_t length) {
     double max_kappa = 0.0;
     size_t start_index = state.getVehicleCurrentPositionIndexInTrajectory();
-    assert(start_index + length < state.getTrajectoryLength() + state.getExtendedTrajectoryLength());
+    // assert(start_index + length < state.getTrajectoryLength() + state.getExtendedTrajectoryLength());
+    if (start_index + length >= state.getTrajectoryLength() + state.getExtendedTrajectoryLength()) {
+        length = state.getTrajectoryLength() + state.getExtendedTrajectoryLength() - start_index - 1;
+    }
     for (size_t i = start_index; i < start_index + length; i++) {
         double kappa;
         if (i < state.getTrajectoryLength()) {
@@ -799,6 +802,9 @@ double DecisionMaking::SubVehicle::calcMaxKappaForState(const StandardState &sta
 // 计算状态的曲线中的最大曲率变化率
 double DecisionMaking::SubVehicle::calcMaxCurvatureChangeRateForState(const StandardState &state, size_t length) {
     size_t start_index = state.getVehicleCurrentPositionIndexInTrajectory();
+    if (start_index + length >= state.getTrajectoryLength() + state.getExtendedTrajectoryLength()) {
+        length = state.getTrajectoryLength() + state.getExtendedTrajectoryLength() - start_index - 1;
+    }
     size_t end_index = start_index + length;
     PathPlanningUtilities::Curve total_curve = state.getTotalTrajectory();
     assert(end_index < total_curve.size());

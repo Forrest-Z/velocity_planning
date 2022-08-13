@@ -110,6 +110,12 @@ void DecisionMaking::SubVehicle::rosInit() {
     this->nh_.getParam("movement_topic", movement_topic);
     this->movement_sub_ = this->nh_.subscribe(movement_topic, 1, &DecisionMaking::SubVehicle::updateVehicleMovement, this);
 
+
+    // Get acceleration topic
+    std::string acceleration_topic;
+    this->nh_.getParam("acceleration_topic", acceleration_topic);
+    acceleration_sub_ = nh_.subscribe(acceleration_topic, 1, &DecisionMaking::SubVehicle::updateVehicleAcceleration, this);
+
     // 获取曲率topic
     std::string curvature_topic;
     this->nh_.getParam("curvature_topic", curvature_topic);
@@ -298,6 +304,13 @@ void DecisionMaking::SubVehicle::updateVehicleMovement(const std_msgs::Float64::
         this->low_frequency_stop_count_recorder_ = 0;
     }
     
+}
+
+void DecisionMaking::SubVehicle::updateVehicleAcceleration(const std_msgs::Float64::ConstPtr acceleration_msg) {
+    // Update acceleration information
+    this->current_vehicle_movement_mutex_.lock();
+    this->current_vehicle_movement_.acceleration_ = acceleration_msg->data;
+    this->current_vehicle_movement_mutex_.unlock();
 }
 
 // 更新车辆曲率

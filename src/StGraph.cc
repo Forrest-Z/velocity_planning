@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-11 20:32:10
+ * @LastEditTime: 2022-08-13 11:54:10
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -355,12 +355,14 @@ void StGraph::loadAccelerationLimitation() {
         double sampled_t = (static_cast<double>(i) / static_cast<double>(param_.acc_limit_t_sampled_points_num)) * param_.t_max;
         sampled_ts[i] = sampled_t;
 
-        // Calculate the lower boundary point
-        double sampled_cur_lower_s = start_velocity_ * sampled_t + 0.5 * param_.acc_min * pow(sampled_t, 2);
-        sampled_lower_ss[i] = std::max(0.0, sampled_cur_lower_s);
-        if (i > 0) {
-            sampled_lower_ss[i] = std::max(sampled_lower_ss[i], sampled_lower_ss[i - 1]);
-        }
+        // // Calculate the lower boundary point
+        // double sampled_cur_lower_s = start_velocity_ * sampled_t + 0.5 * param_.acc_min * pow(sampled_t, 2);
+        // sampled_lower_ss[i] = std::max(0.0, sampled_cur_lower_s);
+        // if (i > 0) {
+        //     sampled_lower_ss[i] = std::max(sampled_lower_ss[i], sampled_lower_ss[i - 1]);
+        // }
+        sampled_lower_ss[i] = 0.0;
+        
 
         // Calculate the upper boundary point
         double cur_pred_velocity = start_velocity_ + sampled_t * param_.acc_max;
@@ -379,8 +381,11 @@ void StGraph::loadAccelerationLimitation() {
     std::vector<Eigen::Vector2d> lower_boundary_values;
     std::vector<Eigen::Vector2d> upper_boundary_values;
     for (int i = 0; i <= param_.acc_limit_t_sampled_points_num; i++) {
-        lower_boundary_values.push_back({sampled_ts[i], sampled_lower_ss[i]});
-        upper_boundary_values.push_back({sampled_ts[i], sampled_upper_ss[i]});
+        lower_boundary_values.push_back({sampled_ts[i] - param_.t_resolution, sampled_lower_ss[i]});
+        upper_boundary_values.push_back({sampled_ts[i] - param_.t_resolution, sampled_upper_ss[i]});
+        if (i != param_.acc_limit_t_sampled_points_num) {
+            upper_boundary_values.push_back({sampled_ts[i] - param_.t_resolution, sampled_upper_ss[i + 1]});
+        }
     }
 
     // Supply the vertex to fill the polygon
@@ -417,21 +422,21 @@ bool StGraph::generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes, std
     // first_cur_cube.print();
     // // END DEBUG
 
-    first_cube.emplace_back(first_cur_cube);
-    calculated_cubes.emplace_back(first_cube);
+    // first_cube.emplace_back(first_cur_cube);
+    // calculated_cubes.emplace_back(first_cube);
 
-    std::vector<Cube2D<double>> second_cube;
-    double second_cube_s_max = start_velocity_ * 2.0 * t_lateral + 0.5 * param_.acc_max * pow(2.0 * t_lateral, 2);
-    double second_cube_s_min = std::min(start_velocity_ * 2.0 * t_lateral + 0.5 * param_.acc_min * pow(2.0, t_lateral), 0.0);
-    Cube2D<double> second_cur_cube = Cube2D<double>(t_lateral, 2.0 * t_lateral, second_cube_s_min, second_cube_s_max);
-    second_cube.emplace_back(second_cur_cube);
-    calculated_cubes.emplace_back(second_cube);
+    // std::vector<Cube2D<double>> second_cube;
+    // double second_cube_s_max = start_velocity_ * 2.0 * t_lateral + 0.5 * param_.acc_max * pow(2.0 * t_lateral, 2);
+    // double second_cube_s_min = std::min(start_velocity_ * 2.0 * t_lateral + 0.5 * param_.acc_min * pow(2.0, t_lateral), 0.0);
+    // Cube2D<double> second_cur_cube = Cube2D<double>(t_lateral, 2.0 * t_lateral, second_cube_s_min, second_cube_s_max);
+    // second_cube.emplace_back(second_cur_cube);
+    // calculated_cubes.emplace_back(second_cube);
 
 
     // ~Stage II: iterative expand the followed cubes
     // TODO: try multithreading here
     int s_start = 0;
-    for (int i = 2; i < param_.lateral_segement_number; i++) {
+    for (int i = 1; i < param_.lateral_segement_number; i++) {
         // Calculate the t boundary for this expansion
         double cur_t_start = i * t_lateral;
         double cur_t_end = (i + 1) * t_lateral;
@@ -464,6 +469,13 @@ bool StGraph::generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes, std
 
         calculated_cubes.emplace_back(gridCubesToRealCubes(cur_cubes));
     }
+
+    // // Edit the second cube
+    // calculated_cubes[1][0].s_start_ = calculated_cubes[2][0].s_start_;
+    // calculated_cubes[1][0].s_end_ = (calculated_cubes[2].back().s_end_ + calculated_cubes[0][0].s_end_) / 2.0;
+
+    // // Edit the first cube
+    // calculated_cubes[0][0].s_end_ = calculated_cubes[1][0].s_end_;
 
     // // DEBNG
     // for (int i = 0; i < calculated_grid_cubes_columns.size(); i++) {

@@ -358,6 +358,11 @@ class StandardState {
                     continue;
                 }
                 double velocity = v_[lower_index];
+
+                // DEBUG
+                std::cout << "Velocity: " << velocity << std::endl;
+                // END DEBUG
+
                 point.velocity = velocity;
 
 

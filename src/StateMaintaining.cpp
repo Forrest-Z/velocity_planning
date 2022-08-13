@@ -124,10 +124,10 @@ void DecisionMaking::SubVehicle::maintainStates() {
         // 得到未来下标
         size_t future_position_index_in_choosed_lane = current_position_index_in_choosed_lane + static_cast<size_t>(Tools::normalForeseenDistance(std::max(current_movement_state.velocity_, this->expected_velocity_upper_bound_), MAX_DECCELERATION, CONSTANT_DISTANCE) / LANE_GAP_DISTANCE);
         std::cout << "当前道路下标为" << current_position_index_in_choosed_lane << "未来道路下标为" << future_position_index_in_choosed_lane << std::endl;
-        assert(future_position_index_in_choosed_lane < choosed_lane.getLaneVelocityLimitation().size());
+        // assert(future_position_index_in_choosed_lane < choosed_lane.getLaneVelocityLimitation().size());
         // 得到当前下标到未来下标中最低速度限制
         double new_speed_limitation = choosed_lane.getLaneVelocityLimitation()[current_position_index_in_choosed_lane];
-        for (size_t i = current_position_index_in_choosed_lane; i < future_position_index_in_choosed_lane; i++) {
+        for (size_t i = current_position_index_in_choosed_lane; i < std::min(future_position_index_in_choosed_lane, choosed_lane.getLaneVelocityLimitation().size()); i++) {
             double velocity_limitation = choosed_lane.getLaneVelocityLimitation()[i];
             if (Tools::isSmall(velocity_limitation, new_speed_limitation)) {
                 new_speed_limitation = velocity_limitation;
@@ -420,7 +420,7 @@ void DecisionMaking::SubVehicle::maintainStates() {
                 re_dynamic_motion_planning_count = 0;
                 // this->velocityPlanningForState(&(this->choosed_state_), obstacles, true);
                 
-                VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->expected_state_));
+                VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->choosed_state_));
                 v_planner->runOnce(obstacles);
                 
 

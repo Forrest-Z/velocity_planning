@@ -169,6 +169,8 @@ class SubVehicle{
     // 更新车辆速度和速度朝向
     void updateVehicleMovement(const std_msgs::Float64::ConstPtr velocity_msg);
 
+    void updateVehicleAcceleration(const std_msgs::Float64::ConstPtr acceleration_msg);
+
     // 更新车辆曲率
     void updateVehicleCurvature(const std_msgs::Float64::ConstPtr curvature_msg);
 
@@ -322,6 +324,7 @@ class SubVehicle{
     ros::Subscriber history_curve_sub_;  //历史轨迹更新
     ros::Subscriber odom_sub_;  // 位置更新节点
     ros::Subscriber movement_sub_;  // 速度更新节点
+    ros::Subscriber acceleration_sub_;
     ros::Subscriber curvature_sub_;  // 曲率更新节点
     ros::Subscriber control_report_sub_;  // 控制报告节点
     ros::Subscriber obstacle_sub_;  // 障碍物信息更新节点

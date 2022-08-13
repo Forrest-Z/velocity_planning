@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-12 19:43:17
+ * @LastEditTime: 2022-08-13 10:17:40
  * @Description: velocity optimization.
  */
 
@@ -23,6 +23,11 @@ OoqpOptimizationInterface::~OoqpOptimizationInterface() = default;
  * @param equal_constraints ensure the continuity of the connections between each two cubes
  */    
 void OoqpOptimizationInterface::load(const std::vector<double>& ref_stamps, const std::array<double, 3>& start_constraints, const double& end_s_constraint, std::array<std::vector<double>, 2>& unequal_constraints, std::vector<std::vector<double>>& equal_constraints, std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>>& polymonial_unequal_constraints) {
+
+    // // DEBUG
+    // std::cout << "start velocity: " << start_constraints[1] << std::endl;
+    // // END DEBUG
+
     ref_stamps_ = ref_stamps;
     start_constraints_ = start_constraints;
     end_s_constraint_ = end_s_constraint;
@@ -269,7 +274,7 @@ void OoqpOptimizationInterface::calculateAbMatrix(const std::array<double, 3>& s
             
     // Calculate dimensions and initialize
     int variables_num = (static_cast<int>(ref_stamps_.size()) - 1) * 6;
-    int equal_constraints_num = 4 + (static_cast<int>(ref_stamps_.size()) - 2) * 3;
+    int equal_constraints_num = 3 + (static_cast<int>(ref_stamps_.size()) - 2) * 3;
     double start_cube_time_span = ref_stamps_[1] - ref_stamps_[0];
     double end_cube_time_span = ref_stamps_[ref_stamps_.size() - 1] - ref_stamps_[ref_stamps_.size() - 2];
     Eigen::MatrixXd A_matrix = Eigen::MatrixXd::Zero(equal_constraints_num, variables_num);
@@ -281,19 +286,19 @@ void OoqpOptimizationInterface::calculateAbMatrix(const std::array<double, 3>& s
 
     // supply start point and end point velocity constraints
     A_matrix(2, 0) = -5.0, A_matrix(2, 1) = 5.0;
-    b_matrix(2, 0) = single_start_constraints[1] * start_cube_time_span;
+    b_matrix(2, 0) = single_start_constraints[1];
     // A_matrix(3, variables_num - 2) = -5.0, A_matrix(3, variables_num - 1) = 5.0;
     // b_matrix(3, 0) = single_end_constraints[1] * end_cube_time_span;
 
     // supply start point and end point acceleration constraints
-    A_matrix(3, 0) = 20.0, A_matrix(3, 1) = -40.0, A_matrix(3, 2) = 20.0;
-    b_matrix(3, 0) = single_start_constraints[2] * start_cube_time_span;
+    // A_matrix(3, 0) = 20.0, A_matrix(3, 1) = -40.0, A_matrix(3, 2) = 20.0;
+    // b_matrix(3, 0) = single_start_constraints[2] * start_cube_time_span;
     // A_matrix(5, variables_num - 3) = 20.0, A_matrix(5, variables_num - 2) = -40.0, A_matrix(5, variables_num - 1) = 20.0;
     // b_matrix(5, 0) = single_end_constraints[2] * end_cube_time_span;
   
     // supply continuity ensurance constraints
     for (int i = 0; i < static_cast<int>(equal_constraints.size()); i++) {
-        int constraint_index = i + 4;
+        int constraint_index = i + 3;
         for (int j = 0; j < variables_num; j++) {
             
             // // DEBUG: check this logic
@@ -410,11 +415,11 @@ bool OoqpOptimizationInterface::solve(const Eigen::SparseMatrix<double, Eigen::R
     int nnzC = Ccopy.nonZeros(); // Unequal constraint , set with 0
 
 
-    // DEBUG
-    // Set the number of the inequal constraints to 0 to test the remain function
-    mz = 0;
-    nnzC = 0;
-    // END DEBUG
+    // // DEBUG
+    // // Set the number of the inequal constraints to 0 to test the remain function
+    // mz = 0;
+    // nnzC = 0;
+    // // END DEBUG
 
     QpGenSparseMa27* qp = new QpGenSparseMa27(nx, my, mz, nnzQ, nnzA, nnzC);
     
@@ -568,7 +573,21 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
 
         bool fall_back = false;
         for (int k = 6; k < ss_[i].size(); k += 6) {
-            if (std::accumulate(ss_[i].begin() + k, ss_[i].begin() + k + 6, 0) < std::accumulate(ss_[i].begin() + k - 6, ss_[i].begin() + k, 0)) {
+
+            // DEBUG
+            double cur = 0.0;
+            double prev = 0.0;
+            for (int j = k; j < k + 6; j++) {
+                cur += ss_[i][j];
+                prev += ss_[i][j - 6];
+            }
+            // std::cout << "Cur: " << std::accumulate(ss_[i].begin() + k, ss_[i].begin() + k + 6, 0) << std::endl;
+            // std::cout << "Prev: " << std::accumulate(ss_[i].begin() + k - 6, ss_[i].begin() + k, 0) << std::endl;
+            // std::cout << "Cur new: " << cur << std::endl;
+            // std::cout << "Prev new: " << prev << std::endl;
+            // END DEBUG
+
+            if (cur <= prev) {
                 fall_back = true;
                 break;
             }
@@ -583,29 +602,29 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
         //     win_index = i;
         // }
 
+
+
+
         double cur_s = ss_[i].back();
         if (cur_s > max_s) {
             max_s = cur_s;
             win_index = i;
         }
 
-        // // DEBUG
-        // std::cout << "Number: " << i << std::endl;
-        // std::cout << "Jerk: " << cur_jerk << std::endl;
-        // std::cout << "s: " << std::endl;
-        // for (int j = 0; j < ss_[i].size(); j++) {
-        //     std::cout << ss_[i][j] << ", ";
-        // }
-        // std::cout << std::endl;
-        // std::cout << "t: " << std::endl;
-        // for (int j = 0; j < tt_[i].size(); j++) {
-        //     std::cout << tt_[i][j] << ", ";
-        // }
-        // std::cout << std::endl;
-        // // END DEBUG
-
-
-
+        // DEBUG
+        std::cout << "Number: " << i << std::endl;
+        std::cout << "End s: " << cur_s << std::endl;
+        std::cout << "s: " << std::endl;
+        for (int j = 0; j < ss_[i].size(); j++) {
+            std::cout << ss_[i][j] << ", ";
+        }
+        std::cout << std::endl;
+        std::cout << "t: " << std::endl;
+        for (int j = 0; j < tt_[i].size(); j++) {
+            std::cout << tt_[i][j] << ", ";
+        }
+        std::cout << std::endl;
+        // END DEBUG
 
     }
 
@@ -784,18 +803,18 @@ std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<do
     std::vector<double> lower_boundaries;
     std::vector<double> upper_boundaries;
     
-    // Supply velocity constraints
-    for (int i = 0; i < n; i++) {
-        int current_cube_start_index = i * 6;
-        for (int j = current_cube_start_index; j < current_cube_start_index + 5; j++) {
-            std::vector<double> current_velocity_constraints_coefficients(variables_num, 0.0);
-            current_velocity_constraints_coefficients[j + 1] = 5.0;
-            current_velocity_constraints_coefficients[j] = -5.0;
-            upper_boundaries.emplace_back(max_velocity);
-            lower_boundaries.emplace_back(min_velocity);
-            coefficients.emplace_back(current_velocity_constraints_coefficients);
-        }
-    }
+    // // Supply velocity constraints
+    // for (int i = 0; i < n; i++) {
+    //     int current_cube_start_index = i * 6;
+    //     for (int j = current_cube_start_index; j < current_cube_start_index + 5; j++) {
+    //         std::vector<double> current_velocity_constraints_coefficients(variables_num, 0.0);
+    //         current_velocity_constraints_coefficients[j + 1] = 5.0;
+    //         current_velocity_constraints_coefficients[j] = -5.0;
+    //         upper_boundaries.emplace_back(max_velocity);
+    //         lower_boundaries.emplace_back(min_velocity);
+    //         coefficients.emplace_back(current_velocity_constraints_coefficients);
+    //     }
+    // }
 
     // Supply acceleration constraints
     for (int i = 0; i < n; i++) {
@@ -854,9 +873,11 @@ BezierPiecewiseCurve::~BezierPiecewiseCurve() = default;
  * @param {*}
  * @return {*}
  */    
-std::pair<std::vector<double>, std::vector<double>> BezierPiecewiseCurve::generateTraj(double sample_gap) {
-    // Initialize
-    std::pair<std::vector<double>, std::vector<double>> traj;
+std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> BezierPiecewiseCurve::generateTraj(double sample_gap) {
+
+    std::vector<double> s;
+    std::vector<double> v;
+    std::vector<double> t;
 
     // Calculate point for each segment
     // Note that for each segment, the sample gap is the same, which means the sample points' number is different according to the segment's time span
@@ -874,10 +895,19 @@ std::pair<std::vector<double>, std::vector<double>> BezierPiecewiseCurve::genera
         // For each seed, generate a point
         for (const auto& current_seed : segment_seeds) {
             double time_stamp = ref_stamps_[segment_index] + (time_span * current_seed);
-            traj.first.push_back(generatePoint(segment_index, current_seed, time_stamp)(0));
-            traj.second.push_back(generatePoint(segment_index, current_seed, time_stamp)(1));
+
+            Eigen::Vector3d point = generatePoint(segment_index, current_seed, time_stamp);
+
+            s.emplace_back(point(0));
+            v.emplace_back(point(1));
+            t.emplace_back(point(2));
+
+
         }
     }
+
+
+    std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> traj = std::make_tuple(s, v, t);
 
     return traj;
     
@@ -961,6 +991,7 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
     st_graph_ = new StGraph(velocity_planning_curve, st_graph_param, vehicle_movement_state.velocity_);
 
     // Supply start state
+
     start_state_ = {0.0, vehicle_movement_state.velocity_, vehicle_movement_state.acceleration_};
 
 }
@@ -1015,14 +1046,33 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
 
     // ~Stage III: generate s-t profile
     bezier_curve_traj_generator_ = new BezierPiecewiseCurve(s, t);
-    std::pair<std::vector<double>, std::vector<double>> s_v_profile = bezier_curve_traj_generator_->generateTraj();
+    std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> s_v_t_profile = bezier_curve_traj_generator_->generateTraj();
 
     // DEBUG
-    
+    std::vector<double> ss, vv, tt;
+    ss = std::get<0>(s_v_t_profile);
+    vv = std::get<1>(s_v_t_profile);
+    tt = std::get<2>(s_v_t_profile);
+    std::cout << "Planner trajectory" << std::endl;
+    std::cout << "s: " << std::endl;
+    for (int i = 0; i < ss.size(); i++) {
+        std::cout << ss[i] << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "v: " << std::endl;
+    for (int i = 0; i < vv.size(); i++) {
+        std::cout << vv[i] << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "t: " << std::endl;
+    for (int i = 0; i < tt.size(); i++) {
+        std::cout << tt[i] << ", ";
+    }
+    std::cout << std::endl;
     // END DEBUG
 
     // ~Stage IV: supply s-t profile to the standard state
-    planning_state_->loadStProfile(s_v_profile.first, s_v_profile.second);
+    planning_state_->loadStProfile(std::get<0>(s_v_t_profile), std::get<1>(s_v_t_profile));
 
     return true;
 
