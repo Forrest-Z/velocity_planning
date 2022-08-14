@@ -299,13 +299,18 @@ class StandardState {
         std::vector<InfluenceObstacle>().swap(this->influence_obstacles_);
     }
 
-    void loadStProfile(const std::vector<double>& s, const std::vector<double>& v) {
+    void loadStProfile(const std::vector<double>& s, const std::vector<double>& v, const std::vector<double>& a) {
         s_ = s;
         v_ = v;
+        a_ = a;
     }
 
     // 发布路径（保持速度模式）
-    void publishCurveMsgVelocityMaintain(const ros::Publisher &publisher) const {
+    void publishCurveMsgVelocityMaintain(const ros::Publisher &publisher) {
+
+        // // Clear
+        // last_planned_curve_.clear();
+
         if (this->state_name_ != StateNames::TURN_LEFT && this->state_name_ != StateNames::TURN_RIGHT && this->state_name_ != StateNames::FORWARD) {
             std::cout << "[Error] publish error curve message" << std::endl;
             LOG(INFO) << "[Error] publish error curve message";
@@ -351,6 +356,8 @@ class StandardState {
                 //     point.velocity = std::max(std::min(sqrt(std::max(this->current_movement_.velocity_ * this->current_movement_.velocity_ + 2.0 * this->vehicle_goal_expected_average_acceleration_ * distance, 0.0)), max_velocity), this->velocity_limitation_min_);
                 // }
 
+
+
                 double s = LANE_GAP_DISTANCE * (i - vehicle_current_position_index_);
                 int lower_index = std::lower_bound(s_.begin(), s_.end(), s) - s_.begin();
                 if (lower_index == s_.size()) {
@@ -360,16 +367,33 @@ class StandardState {
                 double velocity = v_[lower_index];
 
                 // DEBUG
-                std::cout << "Velocity: " << velocity << std::endl;
+                std::cout << "s: " << s << ", velocity: " << velocity << std::endl;
                 // END DEBUG
 
                 point.velocity = velocity;
 
 
 
+
             }
             final_curve.points[i] = point;
         }
+
+        // Update last planned curve
+        last_planned_curve_.assign(total_curve.begin() + vehicle_current_position_index_ + 1, total_curve.end());
+
+        // // DEBUG
+        // std::cout << "debug debug" << std::endl;
+        // std::cout << last_planned_curve_.size() << std::endl;
+        // // END DEBUG
+
+        // // DEBUG
+        // assert(s_.size() == v_.size());
+        // for (int i = 0; i < s_.size(); i++) {
+        //     std::cout << s_[i] << ", " << v_[i] << std::endl;
+        // }
+        // // END DEBUG
+
         // 填充路径点之间的间隔（单位为米）
         final_curve.point_margin = LANE_GAP_DISTANCE;
         // 填充路径模式
@@ -570,7 +594,7 @@ class StandardState {
         return this->is_outof_trapping_;
     }
 
- private:
+
     size_t state_name_;  // 名称
     std::vector<size_t> neighbor_states_;  // 邻居
     bool capability_ = false;  // 可行性
@@ -609,6 +633,8 @@ class StandardState {
     // Velocity planning
     std::vector<double> s_;
     std::vector<double> v_;
+    std::vector<double> a_;
+    PathPlanningUtilities::Curve last_planned_curve_;
 };
 
 }

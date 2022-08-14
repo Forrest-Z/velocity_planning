@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-13 10:17:40
+ * @LastEditTime: 2022-08-13 23:09:33
  * @Description: velocity optimization.
  */
 
@@ -231,11 +231,11 @@ void OoqpOptimizationInterface::calculateAbMatrix(const std::array<double, 3>& s
 
     // Supply start point v constraint
     A_matrix(1, 0) = -5.0, A_matrix(2, 1) = 5.0;
-    b_matrix(1, 0) = single_start_constraints[1] * start_cube_time_span;
+    b_matrix(1, 0) = single_start_constraints[1];
 
     // Supply start point a constraint
     A_matrix(2, 0) = 20.0, A_matrix(2, 1) = -40.0, A_matrix(2, 2) = 20.0;
-    b_matrix(2, 0) = single_start_constraints[2] * start_cube_time_span;
+    b_matrix(2, 0) = single_start_constraints[2];
 
     // supply continuity ensurance constraints
     for (int i = 0; i < static_cast<int>(equal_constraints.size()); i++) {
@@ -274,7 +274,7 @@ void OoqpOptimizationInterface::calculateAbMatrix(const std::array<double, 3>& s
             
     // Calculate dimensions and initialize
     int variables_num = (static_cast<int>(ref_stamps_.size()) - 1) * 6;
-    int equal_constraints_num = 3 + (static_cast<int>(ref_stamps_.size()) - 2) * 3;
+    int equal_constraints_num = 4 + (static_cast<int>(ref_stamps_.size()) - 2) * 3;
     double start_cube_time_span = ref_stamps_[1] - ref_stamps_[0];
     double end_cube_time_span = ref_stamps_[ref_stamps_.size() - 1] - ref_stamps_[ref_stamps_.size() - 2];
     Eigen::MatrixXd A_matrix = Eigen::MatrixXd::Zero(equal_constraints_num, variables_num);
@@ -291,14 +291,14 @@ void OoqpOptimizationInterface::calculateAbMatrix(const std::array<double, 3>& s
     // b_matrix(3, 0) = single_end_constraints[1] * end_cube_time_span;
 
     // supply start point and end point acceleration constraints
-    // A_matrix(3, 0) = 20.0, A_matrix(3, 1) = -40.0, A_matrix(3, 2) = 20.0;
-    // b_matrix(3, 0) = single_start_constraints[2] * start_cube_time_span;
+    A_matrix(3, 0) = 20.0, A_matrix(3, 1) = -40.0, A_matrix(3, 2) = 20.0;
+    b_matrix(3, 0) = single_start_constraints[2];
     // A_matrix(5, variables_num - 3) = 20.0, A_matrix(5, variables_num - 2) = -40.0, A_matrix(5, variables_num - 1) = 20.0;
     // b_matrix(5, 0) = single_end_constraints[2] * end_cube_time_span;
   
     // supply continuity ensurance constraints
     for (int i = 0; i < static_cast<int>(equal_constraints.size()); i++) {
-        int constraint_index = i + 3;
+        int constraint_index = i + 4;
         for (int j = 0; j < variables_num; j++) {
             
             // // DEBUG: check this logic
@@ -873,10 +873,11 @@ BezierPiecewiseCurve::~BezierPiecewiseCurve() = default;
  * @param {*}
  * @return {*}
  */    
-std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> BezierPiecewiseCurve::generateTraj(double sample_gap) {
+std::tuple<std::vector<double>, std::vector<double>, std::vector<double>, std::vector<double>> BezierPiecewiseCurve::generateTraj(double sample_gap) {
 
     std::vector<double> s;
     std::vector<double> v;
+    std::vector<double> a;
     std::vector<double> t;
 
     // Calculate point for each segment
@@ -896,18 +897,19 @@ std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> Bezier
         for (const auto& current_seed : segment_seeds) {
             double time_stamp = ref_stamps_[segment_index] + (time_span * current_seed);
 
-            Eigen::Vector3d point = generatePoint(segment_index, current_seed, time_stamp);
+            Eigen::Vector4d point = generatePoint(segment_index, current_seed, time_stamp);
 
             s.emplace_back(point(0));
             v.emplace_back(point(1));
-            t.emplace_back(point(2));
+            a.emplace_back(point(2));
+            t.emplace_back(point(3));
 
 
         }
     }
 
 
-    std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> traj = std::make_tuple(s, v, t);
+    std::tuple<std::vector<double>, std::vector<double>, std::vector<double>, std::vector<double>> traj = std::make_tuple(s, v, a, t);
 
     return traj;
     
@@ -918,12 +920,15 @@ std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> Bezier
  * @param {*}
  * @return {*}
  */    
-Eigen::Vector3d BezierPiecewiseCurve::generatePoint(int segment_index, double remain, double time_stamp) {
+Eigen::Vector4d BezierPiecewiseCurve::generatePoint(int segment_index, double remain, double time_stamp) {
     // Calculate s and d value
     double s_value = s_coefficients_[segment_index][0] * pow(1.0 - remain, 5) + 5.0 * s_coefficients_[segment_index][1] * remain * pow(1.0 - remain, 4) + 10.0 * s_coefficients_[segment_index][2] * pow(remain, 2) * pow(1.0 - remain, 3) + 10.0 * s_coefficients_[segment_index][3] * pow(remain, 3) * pow(1.0 - remain, 2) + 5.0 * s_coefficients_[segment_index][4] * pow(remain, 4) * (1.0 - remain) + s_coefficients_[segment_index][5] * pow(remain, 5);
+
     double v_value = 5.0 * ((s_coefficients_[segment_index][1] - s_coefficients_[segment_index][0]) * pow(1.0 - remain, 4) + 4.0 * (s_coefficients_[segment_index][2] - s_coefficients_[segment_index][1]) * pow(1.0 - remain, 3) * remain + 6.0 * (s_coefficients_[segment_index][3] - s_coefficients_[segment_index][2]) * pow(1.0 - remain, 2) * pow(remain, 2) + 4.0 * (s_coefficients_[segment_index][4] - s_coefficients_[segment_index][3]) * (1.0 - remain) * pow(remain, 3) + (s_coefficients_[segment_index][5] - s_coefficients_[segment_index][4]) * pow(remain, 4));
 
-    Eigen::Vector3d point{s_value, v_value, time_stamp};
+    double a_value = 20.0 * ((s_coefficients_[segment_index][0] - 2.0 * s_coefficients_[segment_index][1] + s_coefficients_[segment_index][2]) * pow(1.0 - remain, 3) + 3.0 * (s_coefficients_[segment_index][1] - 2.0 * s_coefficients_[segment_index][2] + s_coefficients_[segment_index][3]) * pow(1.0 - remain, 2) * remain + 3.0 * (s_coefficients_[segment_index][2] - 2.0 * s_coefficients_[segment_index][3] + s_coefficients_[segment_index][4]) * (1.0 - remain) * pow(remain, 2) + (s_coefficients_[segment_index][3] - 2.0 * s_coefficients_[segment_index][4] + s_coefficients_[segment_index][5]) * pow(remain, 3));
+
+    Eigen::Vector4d point{s_value, v_value, a_value, time_stamp};
 
     return point;
 }
@@ -991,8 +996,43 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
     st_graph_ = new StGraph(velocity_planning_curve, st_graph_param, vehicle_movement_state.velocity_);
 
     // Supply start state
+    bool excess_limit = false;
+    if (!planning_state_->last_planned_curve_.empty()) {
+        // Attempt to replan from the the nearest point in the last planned path
+        // Get current position
+        size_t nearest_index = Tools::findNearestPositionIndexInCurve(planning_state_->last_planned_curve_, current_state->getVehicleStartState().position_);
+        double last_s = nearest_index * LANE_GAP_DISTANCE;
+        int lower_index = std::lower_bound(planning_state_->s_.begin(), planning_state_->s_.end(), last_s) - planning_state_->s_.begin();
+        if (lower_index == planning_state_->s_.size()) {
+            excess_limit = true;
+        }
+        if (!excess_limit) {
 
-    start_state_ = {0.0, vehicle_movement_state.velocity_, vehicle_movement_state.acceleration_};
+            // DEBUG
+            std::cout << "Planning from the point in the previous trajectory" << std::endl;
+            std::cout << "v: " << planning_state_->v_[lower_index] << ", a: " << planning_state_->a_[lower_index] << std::endl;
+            // END DEBUG 
+
+            start_state_ = {0.0, planning_state_->v_[lower_index], planning_state_->a_[lower_index]};
+        }
+    } 
+
+    // DEBUG
+    std::cout << "Excess limit: " << excess_limit << std::endl;
+    std::cout << "Last planned path length: " << planning_state_->last_planned_curve_.size() << std::endl;
+    std::cout << "s size: " << planning_state_->s_.size() << std::endl;
+    std::cout << "v size: " << planning_state_->v_.size() << std::endl;
+    std::cout << "a size: " << planning_state_->a_.size() << std::endl;
+
+    // END DEBUG
+
+    if (planning_state_->last_planned_curve_.empty() || excess_limit) {
+
+
+        start_state_ = {0.0, vehicle_movement_state.velocity_, vehicle_movement_state.acceleration_};
+    }
+
+    
 
 }
 
@@ -1046,14 +1086,14 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
 
     // ~Stage III: generate s-t profile
     bezier_curve_traj_generator_ = new BezierPiecewiseCurve(s, t);
-    std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> s_v_t_profile = bezier_curve_traj_generator_->generateTraj();
+    std::tuple<std::vector<double>, std::vector<double>, std::vector<double>, std::vector<double>> profile = bezier_curve_traj_generator_->generateTraj();
 
     // DEBUG
     std::vector<double> ss, vv, tt;
-    ss = std::get<0>(s_v_t_profile);
-    vv = std::get<1>(s_v_t_profile);
-    tt = std::get<2>(s_v_t_profile);
-    std::cout << "Planner trajectory" << std::endl;
+    ss = std::get<0>(profile);
+    vv = std::get<1>(profile);
+    tt = std::get<3>(profile);
+    std::cout << "Planned trajectory" << std::endl;
     std::cout << "s: " << std::endl;
     for (int i = 0; i < ss.size(); i++) {
         std::cout << ss[i] << ", ";
@@ -1072,7 +1112,7 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     // END DEBUG
 
     // ~Stage IV: supply s-t profile to the standard state
-    planning_state_->loadStProfile(std::get<0>(s_v_t_profile), std::get<1>(s_v_t_profile));
+    planning_state_->loadStProfile(std::get<0>(profile), std::get<1>(profile), std::get<2>(profile));
 
     return true;
 

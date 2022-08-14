@@ -52,12 +52,22 @@ void DecisionMaking::SubVehicle::checkStates() {
 
 
     // DEBUG
+    // Record time consumption
+    clock_t start_time = clock();
     VelocityPlanning::VelocityPlanner* v_planner_forward = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::FORWARD]));
     v_planner_forward->runOnce(obstacles);
+    clock_t end_time = clock();
+    double time_consumption = static_cast<double>((end_time - start_time)) / CLOCKS_PER_SEC;
+    std::cout << "Time consumption: " << time_consumption << std::endl;
+
     // VelocityPlanning::VelocityPlanner* v_planner_left = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::TURN_LEFT]));
     // v_planner_left->runOnce(obstacles);
     // VelocityPlanning::VelocityPlanner* v_planner_right = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::TURN_RIGHT]));
     // v_planner_right->runOnce(obstacles);
+
+    states_set_[StateNames::TURN_LEFT].disable();
+    states_set_[StateNames::TURN_RIGHT].disable();
+
     // END DEBUG
 
     // 设置三大状态都不可行(for debug)
