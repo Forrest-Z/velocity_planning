@@ -326,6 +326,17 @@ void DecisionMaking::SubVehicle::maintainStates() {
                         // 发布新版路径，保持加速度模式
                         this->choosed_state_.publishCurveMsgVelocityMaintain(this->motion_planning_curve_pub_);
 
+                        // Reload
+                        if (choosed_state_.getStateName() == StateNames::FORWARD) {
+                            (&states_set_[StateNames::FORWARD])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                        } else if (choosed_state_.getStateName() == StateNames::TURN_LEFT) {
+                            (&states_set_[StateNames::TURN_LEFT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                        } else if (choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
+                            (&states_set_[StateNames::TURN_RIGHT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                        } else {
+                            assert(false);
+                        }
+
                         // 重新进行可视化
                         // 清空之前的可视化
                         visualization_msgs::MarkerArray delete_marker_array;
@@ -446,6 +457,16 @@ void DecisionMaking::SubVehicle::maintainStates() {
                     // 发布新版路径，保持加速度模式
                     this->choosed_state_.publishCurveMsgVelocityMaintain(this->motion_planning_curve_pub_);
                     // continue;
+                    // Load last planned curve to state machine
+                    if (choosed_state_.getStateName() == StateNames::FORWARD) {
+                        (&states_set_[StateNames::FORWARD])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                    } else if (choosed_state_.getStateName() == StateNames::TURN_LEFT) {
+                        (&states_set_[StateNames::TURN_LEFT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                    } else if (choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
+                        (&states_set_[StateNames::TURN_RIGHT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                    } else {
+                        assert(false);
+                    }
                 }
             } else {
                 // 如进行安全性判断,如果不安全立刻进行速度规划，如果速度规划得不到安全结果则进行路径规划。
@@ -455,7 +476,7 @@ void DecisionMaking::SubVehicle::maintainStates() {
                     // 当前状态不安全，则重新开始速度规划
                     // this->velocityPlanningForState(&(this->choosed_state_), obstacles, true);
 
-                    VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->expected_state_));
+                    VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->choosed_state_));
                     v_planner->runOnce(obstacles);
 
                     if (!this->choosed_state_.getSafety() || !this->choosed_state_.getCapability()) {
@@ -471,6 +492,17 @@ void DecisionMaking::SubVehicle::maintainStates() {
                         re_dynamic_motion_planning_count = 0;
                         // 发布新版路径，保持加速度模式
                         this->choosed_state_.publishCurveMsgVelocityMaintain(this->motion_planning_curve_pub_);
+
+                        // Load last planned curve to state machine
+                        if (choosed_state_.getStateName() == StateNames::FORWARD) {
+                            (&states_set_[StateNames::FORWARD])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                        } else if (choosed_state_.getStateName() == StateNames::TURN_LEFT) {
+                            (&states_set_[StateNames::TURN_LEFT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                        } else if (choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
+                            (&states_set_[StateNames::TURN_RIGHT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                        } else {
+                            assert(false);
+                        }
                         // continue;
                     }
                 } else {

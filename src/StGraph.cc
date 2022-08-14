@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-13 11:54:10
+ * @LastEditTime: 2022-08-14 10:22:30
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -413,9 +413,9 @@ bool StGraph::generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes, std
 
     // Expand cubes
     // ~Stage I: special process for the first cube and second cube
-    std::vector<Cube2D<double>> first_cube;
-    double first_cube_s_max = start_velocity_ * t_lateral + 0.5 * param_.acc_max * pow(t_lateral, 2);
-    Cube2D<double> first_cur_cube = Cube2D<double>(0.0, t_lateral, 0.0, first_cube_s_max);
+    // std::vector<Cube2D<double>> first_cube;
+    // double first_cube_s_max = start_velocity_ * t_lateral + 0.5 * param_.acc_max * pow(t_lateral, 2);
+    // Cube2D<double> first_cur_cube = Cube2D<double>(0.0, t_lateral, 0.0, first_cube_s_max);
 
     // // DEBUG
     // std::cout << "First cube information" << std::endl;
@@ -436,7 +436,7 @@ bool StGraph::generateCubes(std::vector<std::vector<Cube2D<double>>>* cubes, std
     // ~Stage II: iterative expand the followed cubes
     // TODO: try multithreading here
     int s_start = 0;
-    for (int i = 1; i < param_.lateral_segement_number; i++) {
+    for (int i = 0; i < param_.lateral_segement_number; i++) {
         // Calculate the t boundary for this expansion
         double cur_t_start = i * t_lateral;
         double cur_t_end = (i + 1) * t_lateral;

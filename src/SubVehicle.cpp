@@ -546,7 +546,47 @@ void DecisionMaking::SubVehicle::motionPlanningThread() {
 
         clock_t start_init_time, end_init_time;
         start_init_time = clock();
+
+        // Information backup
+        std::vector<double> forward_s, turn_left_s, turn_right_s;
+        std::vector<double> forward_v, turn_left_v, turn_right_v;
+        std::vector<double> forward_a, turn_left_a, turn_right_a;
+        PathPlanningUtilities::Curve forward_last_planned_curve, turn_left_last_planned_curve, turn_right_last_planned_curve;
+
+        forward_s = states_set_[StateNames::FORWARD].s_;
+        forward_v = states_set_[StateNames::FORWARD].v_;
+        forward_a = states_set_[StateNames::FORWARD].a_;
+        forward_last_planned_curve = states_set_[StateNames::FORWARD].last_planned_curve_;
+
+        turn_left_s = states_set_[StateNames::TURN_LEFT].s_;
+        turn_left_v = states_set_[StateNames::TURN_LEFT].v_;
+        turn_left_a = states_set_[StateNames::TURN_LEFT].a_;
+        turn_left_last_planned_curve = states_set_[StateNames::TURN_LEFT].last_planned_curve_;
+
+        turn_right_s = states_set_[StateNames::TURN_RIGHT].s_;
+        turn_right_v = states_set_[StateNames::TURN_RIGHT].v_;
+        turn_right_a = states_set_[StateNames::TURN_RIGHT].a_;
+        turn_right_last_planned_curve = states_set_[StateNames::TURN_RIGHT].last_planned_curve_;
+
         this->initVehicleStates();
+
+        // Reload the information from previous planning episode
+        states_set_[StateNames::FORWARD].s_ = forward_s;
+        states_set_[StateNames::FORWARD].v_ = forward_v;
+        states_set_[StateNames::FORWARD].a_ = forward_a;
+        states_set_[StateNames::FORWARD].last_planned_curve_ = forward_last_planned_curve;
+
+        states_set_[StateNames::TURN_LEFT].s_ = turn_left_s;
+        states_set_[StateNames::TURN_LEFT].v_ = turn_left_v;
+        states_set_[StateNames::TURN_LEFT].a_ = turn_left_a;
+        states_set_[StateNames::TURN_LEFT].last_planned_curve_ = turn_left_last_planned_curve;
+
+        states_set_[StateNames::TURN_RIGHT].s_ = turn_right_s;
+        states_set_[StateNames::TURN_RIGHT].v_ = turn_right_v;
+        states_set_[StateNames::TURN_RIGHT].a_ = turn_right_a;
+        states_set_[StateNames::TURN_RIGHT].last_planned_curve_ = turn_right_last_planned_curve;
+
+
         std::cout <<"INIT VEHICLE STATE MACHINE SUCCESS" << std::endl;
         LOG(INFO) << "INIT VEHICLE STATE MACHINE SUCCESS";
         std::cout << "CURRENT STATE IS " << DIC_STATE_NAME[this->current_state_.getStateName()] << std::endl;
@@ -635,11 +675,11 @@ void DecisionMaking::SubVehicle::motionPlanningThread() {
             this->stopStateMaintain();
         }
 
-        // // 当满足三大状态时
-        // if (this->choosed_state_.getStateName() == StateNames::FORWARD || this->choosed_state_.getStateName() == StateNames::TURN_LEFT || this->choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
-        //     this->maintainStates();
-        // }
-        sleep(5);
+        // 当满足三大状态时
+        if (this->choosed_state_.getStateName() == StateNames::FORWARD || this->choosed_state_.getStateName() == StateNames::TURN_LEFT || this->choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
+            // this->maintainStates();
+        }
+        sleep(2);
         // 当选中的是倒车状态时
         if (this->choosed_state_.getStateName() == StateNames::REVERSE) {
             // 可视化路径

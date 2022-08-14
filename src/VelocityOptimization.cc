@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-13 23:09:33
+ * @LastEditTime: 2022-08-14 20:17:36
  * @Description: velocity optimization.
  */
 
@@ -231,11 +231,11 @@ void OoqpOptimizationInterface::calculateAbMatrix(const std::array<double, 3>& s
 
     // Supply start point v constraint
     A_matrix(1, 0) = -5.0, A_matrix(2, 1) = 5.0;
-    b_matrix(1, 0) = single_start_constraints[1];
+    b_matrix(1, 0) = single_start_constraints[1] * start_cube_time_span;
 
     // Supply start point a constraint
     A_matrix(2, 0) = 20.0, A_matrix(2, 1) = -40.0, A_matrix(2, 2) = 20.0;
-    b_matrix(2, 0) = single_start_constraints[2];
+    b_matrix(2, 0) = single_start_constraints[2] * start_cube_time_span;
 
     // supply continuity ensurance constraints
     for (int i = 0; i < static_cast<int>(equal_constraints.size()); i++) {
@@ -286,13 +286,13 @@ void OoqpOptimizationInterface::calculateAbMatrix(const std::array<double, 3>& s
 
     // supply start point and end point velocity constraints
     A_matrix(2, 0) = -5.0, A_matrix(2, 1) = 5.0;
-    b_matrix(2, 0) = single_start_constraints[1];
+    b_matrix(2, 0) = single_start_constraints[1] * start_cube_time_span;
     // A_matrix(3, variables_num - 2) = -5.0, A_matrix(3, variables_num - 1) = 5.0;
     // b_matrix(3, 0) = single_end_constraints[1] * end_cube_time_span;
 
     // supply start point and end point acceleration constraints
     A_matrix(3, 0) = 20.0, A_matrix(3, 1) = -40.0, A_matrix(3, 2) = 20.0;
-    b_matrix(3, 0) = single_start_constraints[2];
+    b_matrix(3, 0) = single_start_constraints[2] * start_cube_time_span;
     // A_matrix(5, variables_num - 3) = 20.0, A_matrix(5, variables_num - 2) = -40.0, A_matrix(5, variables_num - 1) = 20.0;
     // b_matrix(5, 0) = single_end_constraints[2] * end_cube_time_span;
   
@@ -494,9 +494,9 @@ bool OoqpOptimizationInterface::solve(const Eigen::SparseMatrix<double, Eigen::R
     // double objective_value = prob->objectiveValue(vars);
     // std::cout << "Objective value: " << objective_value << std::endl;
 
-    // // DEBUG
-    // std::cout << "Optimization status: " << status << std::endl;
-    // // END DEBUG
+    // DEBUG
+    std::cout << "Optimization status: " << status << std::endl;
+    // END DEBUG
 
     if (status == TerminationCode::SUCCESSFUL_TERMINATION) {
         vars->x->copyIntoArray(&x.coeffRef(0));
@@ -571,30 +571,30 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
     for (int i = 0; i < n; i++) {
         if (!ress_[i]) continue;
 
-        bool fall_back = false;
-        for (int k = 6; k < ss_[i].size(); k += 6) {
+        // bool fall_back = false;
+        // for (int k = 6; k < ss_[i].size(); k += 6) {
 
-            // DEBUG
-            double cur = 0.0;
-            double prev = 0.0;
-            for (int j = k; j < k + 6; j++) {
-                cur += ss_[i][j];
-                prev += ss_[i][j - 6];
-            }
-            // std::cout << "Cur: " << std::accumulate(ss_[i].begin() + k, ss_[i].begin() + k + 6, 0) << std::endl;
-            // std::cout << "Prev: " << std::accumulate(ss_[i].begin() + k - 6, ss_[i].begin() + k, 0) << std::endl;
-            // std::cout << "Cur new: " << cur << std::endl;
-            // std::cout << "Prev new: " << prev << std::endl;
-            // END DEBUG
+        //     // DEBUG
+        //     double cur = 0.0;
+        //     double prev = 0.0;
+        //     for (int j = k; j < k + 6; j++) {
+        //         cur += ss_[i][j];
+        //         prev += ss_[i][j - 6];
+        //     }
+        //     // std::cout << "Cur: " << std::accumulate(ss_[i].begin() + k, ss_[i].begin() + k + 6, 0) << std::endl;
+        //     // std::cout << "Prev: " << std::accumulate(ss_[i].begin() + k - 6, ss_[i].begin() + k, 0) << std::endl;
+        //     // std::cout << "Cur new: " << cur << std::endl;
+        //     // std::cout << "Prev new: " << prev << std::endl;
+        //     // END DEBUG
 
-            if (cur <= prev) {
-                fall_back = true;
-                break;
-            }
-        }
-        if (fall_back) {
-            continue;
-        }
+        //     if (cur <= prev) {
+        //         fall_back = true;
+        //         break;
+        //     }
+        // }
+        // if (fall_back) {
+        //     continue;
+        // }
 
         // double cur_jerk = values_[i];
         // if (cur_jerk < min_jerk) {
@@ -657,6 +657,13 @@ void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cu
         ref_stamps.emplace_back(cube_path[i].t_end_);
     }
 
+    // // DEBUG
+    // std::cout << "ref t" << std::endl;
+    // for (int i = 0; i < ref_stamps.size(); i++) {
+    //     std::cout << ref_stamps[i] << std::endl;
+    // }
+    // // END DEBUG
+
     // ~Stage II: calculate unequal constraints for variables (except start point and end point)
     std::array<std::vector<double>, 2> unequal_constraints = generateUnequalConstraints(cube_path);
 
@@ -690,9 +697,9 @@ void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cu
     ooqp_itf_->load(ref_stamps, start_state, end_s, unequal_constraints, equal_constraints, polynomial_unequal_constraints);
     bool optimization_res = ooqp_itf_->runOnce(&optimized_s, &objective_value);
 
-    // // DEBUG
-    // std::cout << "optimization res: " << optimization_res << std::endl;
-    // // END DEBUG
+    // DEBUG
+    std::cout << "optimization res: " << optimization_res << std::endl;
+    // END DEBUG
 
     ss_[index] = optimized_s;
     tt_[index] = ref_stamps;
@@ -803,29 +810,31 @@ std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<do
     std::vector<double> lower_boundaries;
     std::vector<double> upper_boundaries;
     
-    // // Supply velocity constraints
-    // for (int i = 0; i < n; i++) {
-    //     int current_cube_start_index = i * 6;
-    //     for (int j = current_cube_start_index; j < current_cube_start_index + 5; j++) {
-    //         std::vector<double> current_velocity_constraints_coefficients(variables_num, 0.0);
-    //         current_velocity_constraints_coefficients[j + 1] = 5.0;
-    //         current_velocity_constraints_coefficients[j] = -5.0;
-    //         upper_boundaries.emplace_back(max_velocity);
-    //         lower_boundaries.emplace_back(min_velocity);
-    //         coefficients.emplace_back(current_velocity_constraints_coefficients);
-    //     }
-    // }
+    // Supply velocity constraints
+    for (int i = 0; i < n; i++) {
+        int current_cube_start_index = i * 6;
+        double time_span = cube_path[i].t_end_ - cube_path[i].t_start_;
+        for (int j = current_cube_start_index; j < current_cube_start_index + 5; j++) {
+            std::vector<double> current_velocity_constraints_coefficients(variables_num, 0.0);
+            current_velocity_constraints_coefficients[j + 1] = 5.0;
+            current_velocity_constraints_coefficients[j] = -5.0;
+            upper_boundaries.emplace_back(max_velocity * time_span);
+            lower_boundaries.emplace_back(min_velocity * time_span);
+            coefficients.emplace_back(current_velocity_constraints_coefficients);
+        }
+    }
 
     // Supply acceleration constraints
     for (int i = 0; i < n; i++) {
         int current_cube_start_index = i * 6;
+        double time_span = cube_path[i].t_end_ - cube_path[i].t_start_;
         for (int j = current_cube_start_index; j < current_cube_start_index + 4; j++) {
             std::vector<double> current_acceleratrion_constraints_coefficients(variables_num, 0.0);
             current_acceleratrion_constraints_coefficients[j] = 20.0;
             current_acceleratrion_constraints_coefficients[j + 1] = -40.0;
             current_acceleratrion_constraints_coefficients[j + 2] = 20.0;
-            upper_boundaries.emplace_back(max_acceleration);
-            lower_boundaries.emplace_back(min_acceleration);
+            upper_boundaries.emplace_back(max_acceleration * time_span);
+            lower_boundaries.emplace_back(min_acceleration * time_span);
             coefficients.emplace_back(current_acceleratrion_constraints_coefficients);
         }
     }
@@ -924,9 +933,9 @@ Eigen::Vector4d BezierPiecewiseCurve::generatePoint(int segment_index, double re
     // Calculate s and d value
     double s_value = s_coefficients_[segment_index][0] * pow(1.0 - remain, 5) + 5.0 * s_coefficients_[segment_index][1] * remain * pow(1.0 - remain, 4) + 10.0 * s_coefficients_[segment_index][2] * pow(remain, 2) * pow(1.0 - remain, 3) + 10.0 * s_coefficients_[segment_index][3] * pow(remain, 3) * pow(1.0 - remain, 2) + 5.0 * s_coefficients_[segment_index][4] * pow(remain, 4) * (1.0 - remain) + s_coefficients_[segment_index][5] * pow(remain, 5);
 
-    double v_value = 5.0 * ((s_coefficients_[segment_index][1] - s_coefficients_[segment_index][0]) * pow(1.0 - remain, 4) + 4.0 * (s_coefficients_[segment_index][2] - s_coefficients_[segment_index][1]) * pow(1.0 - remain, 3) * remain + 6.0 * (s_coefficients_[segment_index][3] - s_coefficients_[segment_index][2]) * pow(1.0 - remain, 2) * pow(remain, 2) + 4.0 * (s_coefficients_[segment_index][4] - s_coefficients_[segment_index][3]) * (1.0 - remain) * pow(remain, 3) + (s_coefficients_[segment_index][5] - s_coefficients_[segment_index][4]) * pow(remain, 4));
+    double v_value = 5.0 * ((s_coefficients_[segment_index][1] - s_coefficients_[segment_index][0]) * pow(1.0 - remain, 4) + 4.0 * (s_coefficients_[segment_index][2] - s_coefficients_[segment_index][1]) * pow(1.0 - remain, 3) * remain + 6.0 * (s_coefficients_[segment_index][3] - s_coefficients_[segment_index][2]) * pow(1.0 - remain, 2) * pow(remain, 2) + 4.0 * (s_coefficients_[segment_index][4] - s_coefficients_[segment_index][3]) * (1.0 - remain) * pow(remain, 3) + (s_coefficients_[segment_index][5] - s_coefficients_[segment_index][4]) * pow(remain, 4)) / (ref_stamps_[segment_index + 1] - ref_stamps_[segment_index]);
 
-    double a_value = 20.0 * ((s_coefficients_[segment_index][0] - 2.0 * s_coefficients_[segment_index][1] + s_coefficients_[segment_index][2]) * pow(1.0 - remain, 3) + 3.0 * (s_coefficients_[segment_index][1] - 2.0 * s_coefficients_[segment_index][2] + s_coefficients_[segment_index][3]) * pow(1.0 - remain, 2) * remain + 3.0 * (s_coefficients_[segment_index][2] - 2.0 * s_coefficients_[segment_index][3] + s_coefficients_[segment_index][4]) * (1.0 - remain) * pow(remain, 2) + (s_coefficients_[segment_index][3] - 2.0 * s_coefficients_[segment_index][4] + s_coefficients_[segment_index][5]) * pow(remain, 3));
+    double a_value = 20.0 * ((s_coefficients_[segment_index][0] - 2.0 * s_coefficients_[segment_index][1] + s_coefficients_[segment_index][2]) * pow(1.0 - remain, 3) + 3.0 * (s_coefficients_[segment_index][1] - 2.0 * s_coefficients_[segment_index][2] + s_coefficients_[segment_index][3]) * pow(1.0 - remain, 2) * remain + 3.0 * (s_coefficients_[segment_index][2] - 2.0 * s_coefficients_[segment_index][3] + s_coefficients_[segment_index][4]) * (1.0 - remain) * pow(remain, 2) + (s_coefficients_[segment_index][3] - 2.0 * s_coefficients_[segment_index][4] + s_coefficients_[segment_index][5]) * pow(remain, 3)) / (ref_stamps_[segment_index + 1] - ref_stamps_[segment_index]);
 
     Eigen::Vector4d point{s_value, v_value, a_value, time_stamp};
 

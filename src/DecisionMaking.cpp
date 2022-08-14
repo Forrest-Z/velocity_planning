@@ -52,21 +52,26 @@ void DecisionMaking::SubVehicle::checkStates() {
 
 
     // DEBUG
+    // std::cout << "DEBUG DEBUG DEBUG" << std::endl;
+    // std::cout << "DEBUG SIZE: " << states_set_[StateNames::FORWARD].last_planned_curve_.size() << std::endl;
+    // std::cout << "DEBUG s size: " << states_set_[StateNames::FORWARD].s_.size() << std::endl;
+    // std::cout << "DEBUG v size: " << states_set_[StateNames::FORWARD].v_.size() << std::endl;
+    // std::cout << "DEBUG a size: " << states_set_[StateNames::FORWARD].a_.size() << std::endl;
     // Record time consumption
     clock_t start_time = clock();
     VelocityPlanning::VelocityPlanner* v_planner_forward = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::FORWARD]));
     v_planner_forward->runOnce(obstacles);
+
+    VelocityPlanning::VelocityPlanner* v_planner_left = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::TURN_LEFT]));
+    v_planner_left->runOnce(obstacles);
+
+    VelocityPlanning::VelocityPlanner* v_planner_right = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::TURN_RIGHT]));
+    v_planner_right->runOnce(obstacles);
+
     clock_t end_time = clock();
     double time_consumption = static_cast<double>((end_time - start_time)) / CLOCKS_PER_SEC;
     std::cout << "Time consumption: " << time_consumption << std::endl;
 
-    // VelocityPlanning::VelocityPlanner* v_planner_left = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::TURN_LEFT]));
-    // v_planner_left->runOnce(obstacles);
-    // VelocityPlanning::VelocityPlanner* v_planner_right = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::TURN_RIGHT]));
-    // v_planner_right->runOnce(obstacles);
-
-    states_set_[StateNames::TURN_LEFT].disable();
-    states_set_[StateNames::TURN_RIGHT].disable();
 
     // END DEBUG
 
@@ -353,6 +358,19 @@ void DecisionMaking::SubVehicle::chooseStates() {
     if (this->choosed_state_.getStateName() == StateNames::FORWARD || this->choosed_state_.getStateName() == StateNames::TURN_LEFT || this->choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
         // 如果选中状态是三大状态时，保持加速度模式
         this->choosed_state_.publishCurveMsgVelocityMaintain(this->motion_planning_curve_pub_);
+
+        // Load last planned curve to state machine
+        if (choosed_state_.getStateName() == StateNames::FORWARD) {
+            (&states_set_[StateNames::FORWARD])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+        } else if (choosed_state_.getStateName() == StateNames::TURN_LEFT) {
+            (&states_set_[StateNames::TURN_LEFT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+        } else if (choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
+            (&states_set_[StateNames::TURN_RIGHT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+        } else {
+            assert(false);
+        }
+
+    
     } else if (this->choosed_state_.getStateName() == StateNames::AVOIDANCE){
         // 如果选中状态不是三大状态时，追点模式
         // 判断是否进行脱困
