@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-17 16:04:40
+ * @LastEditTime: 2022-08-17 17:22:52
  * @Description: velocity optimization.
  */
 
@@ -697,8 +697,6 @@ VelocityOptimizer::~VelocityOptimizer() = default;
 
 bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& cube_paths, const std::array<double, 3>& start_state, std::vector<std::pair<double, double>>& last_s_range, const double& max_velocity, const double& min_velocity, const double& max_acceleration, const double& min_acceleration, std::vector<double>* s, std::vector<double>* t) {
 
-
-
     // ~Stage I: determine the s sampling number due to the number of the available paths
     int available_cube_paths_num = cube_paths.size();
     const int optimization_maximum_number = 20;
@@ -1235,7 +1233,8 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
 
     bool graph_success = st_graph_->runOnce(obstacles, &cube_paths, &last_s_range);
     if (!graph_success) {
-        planning_state_->setSafety(false);
+        // planning_state_->setSafety(false);
+        planning_state_->velocity_profile_generation_state_ = false;
         std::cout << "State name: " << planning_state_->getStateName() << " is not safe due to graph failure." << std::endl;
         return false;
     }
@@ -1262,7 +1261,8 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     } 
 
     if (!optimization_success) {
-        planning_state_->setSafety(false);
+        // planning_state_->setSafety(false);
+        planning_state_->velocity_profile_generation_state_ = false;
         std::cout << "State name: " << planning_state_->getStateName() << " is not safe due to optimization failure." << std::endl;
         return false;
     }
@@ -1296,6 +1296,7 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
 
     // ~Stage IV: supply s-t profile to the standard state
     planning_state_->loadStProfile(std::get<0>(profile), std::get<1>(profile), std::get<2>(profile));
+    planning_state_->velocity_profile_generation_state_ = true;
 
     return true;
 
