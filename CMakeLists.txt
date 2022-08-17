@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(motion_planning)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11 -Wall -O0)
+add_compile_options(-std=c++11 -Wall -O3)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/")
@@ -34,6 +34,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Glog REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
 # find_package(/opt/ros/kinetic/include/opencv-3.3.1-dev)
+find_package(OsqpEigen)
 
 
 
@@ -192,6 +193,7 @@ target_link_libraries(${PROJECT_NAME}_lib
   ${catkin_LIBRARIES}
   glog
   ${OpenCV_LIBS}
+  OsqpEigen::OsqpEigen
 
   # obstacle_utilities
 )
@@ -201,6 +203,7 @@ target_link_libraries(${PROJECT_NAME}_node
   glog
   ${PROJECT_NAME}_lib
   ${OpenCV_LIBS}
+  OsqpEigen::OsqpEigen
   ooqpgensparse 
   ooqpsparse 
   ooqpgondzio 

@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-14 20:17:36
+ * @LastEditTime: 2022-08-17 16:04:40
  * @Description: velocity optimization.
  */
 
@@ -10,6 +10,180 @@
 
 
 namespace VelocityPlanning {
+
+bool OsqpOptimizationInterface::runOnce(const std::vector<double>& ref_times, const std::array<double, 3>& start_state, const std::array<double, 3>& end_state, const std::array<std::vector<double>, 2>& unequal_constraints, const std::vector<std::vector<double>>& equal_constraints, const std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>>& polynomial_unequal_constraints, std::vector<double>* optimized_s, double* objective_value) {
+    // ~Stage I: calculate objective function Q and c
+    Eigen::SparseMatrix<double, Eigen::RowMajor> Q;
+    Eigen::VectorXd c;
+    OsqpOptimizationInterface::calculateQcMatrix(ref_times, Q, c);
+
+    // ~Stage II: calculate constraints
+    Eigen::SparseMatrix<double, Eigen::RowMajor> constraints;
+    Eigen::VectorXd lower_bounds;
+    Eigen::VectorXd upper_bounds;
+    OsqpOptimizationInterface::calculateConstraintsMatrix(ref_times, start_state, end_state, unequal_constraints, equal_constraints, polynomial_unequal_constraints, constraints, lower_bounds, upper_bounds);
+
+    // ~Stage III: solve 
+    OsqpEigen::Solver solver;
+
+    solver.settings()->setVerbosity(true);
+
+    solver.settings()->setWarmStart(true);
+
+    solver.data()->setNumberOfVariables(Q.rows());
+    solver.data()->setNumberOfConstraints(constraints.rows());
+
+
+
+    if (!solver.data()->setHessianMatrix(Q)) return false;
+    if (!solver.data()->setGradient(c)) return false;
+    if (!solver.data()->setLinearConstraintsMatrix(constraints)) return false;
+    if (!solver.data()->setLowerBound(lower_bounds)) return false;
+    if (!solver.data()->setUpperBound(upper_bounds)) return false;
+
+    // instantiate the solver
+    if (!solver.initSolver()) return false;
+
+    Eigen::VectorXd QPSolution;
+
+    // solve the QP problem
+    if (!solver.solve()) return 1;
+
+    QPSolution = solver.getSolution();
+    std::cout << "QPSolution: " << std::endl << QPSolution << std::endl;
+
+    std::vector<double> s(&QPSolution[0], QPSolution.data()+QPSolution.cols()*QPSolution.rows());
+
+    double objective_val = solver.workspace()->info->obj_val;
+
+    std::cout << "Objective value: " << objective_val << std::endl;
+
+
+
+    *objective_value = objective_val;
+    *optimized_s = s;
+
+    return true;
+
+}
+
+void OsqpOptimizationInterface::calculateQcMatrix(const std::vector<double>& ref_stamps, Eigen::SparseMatrix<double, Eigen::RowMajor>& Q, Eigen::VectorXd& c) {
+    // Initialize Q matrix
+    int variables_num = (static_cast<int>(ref_stamps.size()) - 1) * 6;
+    Eigen::MatrixXd Q_matrix = Eigen::MatrixXd::Zero(variables_num, variables_num);
+
+    // Calculate D matrix
+    for (int i = 0; i < static_cast<int>(ref_stamps.size()) - 1; i++) {
+        // Calculate time span
+        double time_span = ref_stamps[i + 1] - ref_stamps[i];
+        double time_coefficient = pow(time_span, -3);
+
+        // Intergrate to objective function
+        int influenced_variable_index = i * 6;
+        Q_matrix.block(influenced_variable_index, influenced_variable_index, 6, 6) += BezierCurveHessianMatrix * time_coefficient;
+    }
+
+    // // DEBUG
+    // std::cout << "Q_matrix: " << Q_matrix << std::endl;
+    // // END DEBUG
+
+    // // DEBUG
+    // for (int i = 0; i < Q_matrix.rows(); i++) {
+    //     for (int j = 0; j < Q_matrix.cols(); j++) {
+    //         std::cout << Q_matrix(i, j) << ", ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+    // std::cout << "-----------------" << std::endl;
+    // // END DEBUG
+
+    Q = Q_matrix.sparseView();
+    c.resize(variables_num);
+    c.setZero();
+}
+
+void OsqpOptimizationInterface::calculateConstraintsMatrix(const std::vector<double>& ref_times, const std::array<double, 3>& start_state, const std::array<double, 3>& end_state, const std::array<std::vector<double>, 2>& unequal_constraints, const std::vector<std::vector<double>>& equal_constraints, const std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>>& polynomial_unequal_constraints, Eigen::SparseMatrix<double, Eigen::RowMajor>& constraints, Eigen::VectorXd& lower_bounds, Eigen::VectorXd& upper_bounds) {
+    // ~Stage I: calculate constraints number
+    int variables_num = (static_cast<int>(ref_times.size()) - 1) * 6;
+    /*
+    @brief: @3: start state constraints
+            @1: end s constraints
+            @unequal_constraints[0].size() - 1: holding the same description with OOQP, the last control point has 
+            no constraint. But there is still a placeholder, which will be ignored here
+            @equal_constraints: the constraints for the continuity between two adjacent cubes
+            @polynomial_unequal_constraints: the constraints for the limitation of velocity and acceleration
+    */
+    int constraints_num = 3 + 0 + (unequal_constraints[0].size() - 1) + equal_constraints.size() + std::get<1>(polynomial_unequal_constraints).size();
+
+    Eigen::MatrixXd constraints_matrix = Eigen::MatrixXd::Zero(constraints_num, variables_num);
+    Eigen::VectorXd lower_bounds_vec = Eigen::MatrixXd::Zero(constraints_num, 1);
+    Eigen::VectorXd upper_bounds_vec = Eigen::MatrixXd::Zero(constraints_num, 1);
+    int iter = 0;
+
+    // ~Stage II: supply start state and end state constraint
+    // Supply start point and end point position constraints
+    double start_cube_time_span = ref_times[1] - ref_times[0];
+    double end_cube_time_span = ref_times[ref_times.size() - 1] - ref_times[ref_times.size() - 2];
+    constraints_matrix(iter, 0) = 1.0;
+    lower_bounds_vec(iter) = start_state[0];
+    upper_bounds_vec(iter) = start_state[0];
+    iter += 1;
+    // constraints_matrix(iter, variables_num - 1) = 1.0;
+    // lower_bounds_vec(iter) = end_state[0];
+    // upper_bounds_vec(iter) = end_state[0];
+    // iter += 1;
+    // Supply start point velocity constraint
+    constraints_matrix(iter, 0) = -5.0, constraints_matrix(iter, 1) = 5.0;
+    lower_bounds_vec(iter) = start_state[1] * start_cube_time_span;
+    upper_bounds_vec(iter) = start_state[1] * start_cube_time_span;
+    iter += 1;
+    // Supply start point acceleration constraint
+    constraints_matrix(iter, 0) = 20.0, constraints_matrix(iter, 1) = -40.0, constraints_matrix(iter, 2) = 20.0;
+    lower_bounds_vec(iter) = start_state[2] * start_cube_time_span;
+    upper_bounds_vec(iter) = start_state[2] * start_cube_time_span;
+    iter += 1;
+
+    // ~Stage III: supply unequal constraints 
+    for (int i = 1; i < unequal_constraints[0].size(); i++) {
+        constraints_matrix(iter, i) = 1.0;
+        lower_bounds_vec(iter) = unequal_constraints[0][i];
+        upper_bounds_vec(iter) = unequal_constraints[1][i];
+        iter += 1;
+    }
+
+    // ~Stage IV: supply equal constraints
+    for (int i = 0; i < static_cast<int>(equal_constraints.size()); i++) {
+        for (int j = 0; j < variables_num; j++) {
+
+            // // DEBUG: check this logic
+            // assert(static_cast<int>(equal_constraints[i].size()) == variables_num);
+            // // END DEBUG
+
+            constraints_matrix(iter, j) = equal_constraints[i][j];
+
+        }
+        lower_bounds_vec(iter) = 0.0;
+        upper_bounds_vec(iter) = 0.0;
+        iter += 1;
+    }
+
+    // ~Stage V: supply polynomial unequal constraints
+    std::vector<std::vector<double>> polynomial_coefficients = std::get<0>(polynomial_unequal_constraints);
+    std::vector<double> polynomial_lower_boundaries = std::get<1>(polynomial_unequal_constraints);
+    std::vector<double> polynomial_upper_boundaries = std::get<2>(polynomial_unequal_constraints);
+    for (int i = 0; i < std::get<1>(polynomial_unequal_constraints).size(); i++) {
+        for (int j = 0; j < variables_num; j++) {
+            constraints_matrix(iter, j) = polynomial_coefficients[i][j];
+        }
+        lower_bounds_vec(iter) = polynomial_lower_boundaries[i];
+        upper_bounds_vec(iter) = polynomial_upper_boundaries[i];
+        iter += 1;
+    }
+
+    constraints = constraints_matrix.sparseView();
+    lower_bounds = lower_bounds_vec;
+    upper_bounds = upper_bounds_vec;
+}
 
 OoqpOptimizationInterface::OoqpOptimizationInterface() = default;
 OoqpOptimizationInterface::~OoqpOptimizationInterface() = default;

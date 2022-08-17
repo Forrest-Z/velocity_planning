@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:08
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-13 21:58:17
+ * @LastEditTime: 2022-08-17 16:04:22
  * @Description: velocity optimization.
  */
 
@@ -15,7 +15,23 @@
 #include "Status.h"
 #include "StGraph.hpp"
 
+#include "OsqpEigen/OsqpEigen.h"
+
+
+
 namespace VelocityPlanning {
+
+class OsqpOptimizationInterface {
+ public:
+
+    static bool runOnce(const std::vector<double>& ref_times, const std::array<double, 3>& start_state, const std::array<double, 3>& end_state, const std::array<std::vector<double>, 2>& unequal_constraints, const std::vector<std::vector<double>>& equal_constraints, const std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>>& polynomial_unequal_constraints, std::vector<double>* optimized_s, double* objective_value);
+
+    static void calculateQcMatrix(const std::vector<double>& ref_stamps, Eigen::SparseMatrix<double, Eigen::RowMajor>& Q, Eigen::VectorXd& c);
+
+    static void calculateConstraintsMatrix(const std::vector<double>& ref_times, const std::array<double, 3>& start_state, const std::array<double, 3>& end_state, const std::array<std::vector<double>, 2>& unequal_constraints, const std::vector<std::vector<double>>& equal_constraints, const std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>>& polynomial_unequal_constraints, Eigen::SparseMatrix<double, Eigen::RowMajor>& constraints, Eigen::VectorXd& lower_bounds, Eigen::VectorXd& upper_bounds);
+
+    
+};
 
 // Optimization interface, based on OOQP
 class OoqpOptimizationInterface {
