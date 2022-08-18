@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-18 08:52:35
+ * @LastEditTime: 2022-08-18 12:39:14
  * @Description: velocity optimization.
  */
 
@@ -50,13 +50,13 @@ bool OsqpOptimizationInterface::runOnce(const std::vector<double>& ref_times, co
     if (!solver.solve()) return false;
 
     QPSolution = solver.getSolution();
-    std::cout << "QPSolution: " << std::endl << QPSolution << std::endl;
+    // std::cout << "QPSolution: " << std::endl << QPSolution << std::endl;
 
     std::vector<double> s(&QPSolution[0], QPSolution.data()+QPSolution.cols()*QPSolution.rows());
 
     double objective_val = solver.workspace()->info->obj_val;
 
-    std::cout << "Objective value: " << objective_val << std::endl;
+    // std::cout << "Objective value: " << objective_val << std::endl;
 
 
 
@@ -733,11 +733,7 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
     }
 
     // ~Stage III: select the res with the optimal jerk
-    // Minimum jerk
-    // double min_jerk = static_cast<double>(INT_MAX);
-
-    double max_s = static_cast<double>(INT_MIN);
-    int win_index = -1;
+    std::vector<std::pair<double, int>> s_info;
 
 
     for (int i = 0; i < n; i++) {
@@ -768,24 +764,14 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
         //     continue;
         // }
 
-        // double cur_jerk = values_[i];
-        // if (cur_jerk < min_jerk) {
-        //     min_jerk = cur_jerk;
-        //     win_index = i;
-        // }
-
-
-
-
         double cur_s = ss_[i].back();
-        if (cur_s > max_s) {
-            max_s = cur_s;
-            win_index = i;
-        }
+        double cur_jerk = values_[i];
+        s_info.emplace_back(std::make_pair(cur_s, i));
 
         // DEBUG
         std::cout << "Number: " << i << std::endl;
         std::cout << "End s: " << cur_s << std::endl;
+        std::cout << "Jerk: " << cur_jerk << std::endl;
         std::cout << "s: " << std::endl;
         for (int j = 0; j < ss_[i].size(); j++) {
             std::cout << ss_[i][j] << ", ";
@@ -798,6 +784,18 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
         std::cout << std::endl;
         // END DEBUG
 
+    }
+
+    // Select the index with the top three s
+    double min_jerk = static_cast<double>(INT_MAX);
+    int win_index = -1;
+    std::sort(s_info.rbegin(), s_info.rend());
+    for (int i = 0; i < std::min(3, static_cast<int>(s_info.size())); i++) {
+        int cur_jerk = values_[s_info[i].second];
+        if (cur_jerk < min_jerk) {
+            min_jerk = cur_jerk;
+            win_index = s_info[i].second;
+        }
     }
 
     if (win_index == -1) {
@@ -987,7 +985,8 @@ std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<do
     std::vector<double> upper_boundaries;
     
     // Supply velocity constraints
-    for (int i = 0; i < n; i++) {
+    // For the first cube, there is no velocity contraints
+    for (int i = 2; i < n; i++) {
         int current_cube_start_index = i * 6;
         double time_span = cube_path[i].t_end_ - cube_path[i].t_start_;
         for (int j = current_cube_start_index; j < current_cube_start_index + 5; j++) {
@@ -1132,9 +1131,13 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
     // find nearest point
     int current_position_index_in_trajectory = Tools::findNearestPositionIndexInCurve(current_state->getTotalTrajectory(), current_state->getVehicleStartState().position_, current_state->getVehicleCurrentPositionIndexInTrajectory());
 
+    // Get vehicle current movement
+    PathPlanningUtilities::VehicleMovementState vehicle_movement_state = current_state->getVehicleCurrentMovement();
+
     // Declare parameters
     StGraph::Param st_graph_param;
-    st_graph_param.velocity_max = current_state->getVelocityLimitationMax();
+    st_graph_param.velocity_max = std::max(current_state->getVelocityLimitationMax(), vehicle_movement_state.velocity_);
+    st_graph_param.s_max = std::max(st_graph_param.s_max, st_graph_param.t_max * st_graph_param.velocity_max);
     
     // Cut path segment
     PathPlanningUtilities::Curve total_curve = current_state->getTotalTrajectory();
@@ -1173,10 +1176,6 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
 
     // // END DEBUG
 
-
-    // Get vehicle current movement
-    PathPlanningUtilities::VehicleMovementState vehicle_movement_state = current_state->getVehicleCurrentMovement();
-
     // Construct s-t graph
     st_graph_ = new StGraph(velocity_planning_curve, st_graph_param, vehicle_movement_state.velocity_);
 
@@ -1202,17 +1201,21 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
         }
     } 
 
-    // DEBUG
-    std::cout << "Excess limit: " << excess_limit << std::endl;
-    std::cout << "Last planned path length: " << planning_state_->last_planned_curve_.size() << std::endl;
-    std::cout << "s size: " << planning_state_->s_.size() << std::endl;
-    std::cout << "v size: " << planning_state_->v_.size() << std::endl;
-    std::cout << "a size: " << planning_state_->a_.size() << std::endl;
+    // // DEBUG
+    // std::cout << "Excess limit: " << excess_limit << std::endl;
+    // std::cout << "Last planned path length: " << planning_state_->last_planned_curve_.size() << std::endl;
+    // std::cout << "s size: " << planning_state_->s_.size() << std::endl;
+    // std::cout << "v size: " << planning_state_->v_.size() << std::endl;
+    // std::cout << "a size: " << planning_state_->a_.size() << std::endl;
 
-    // END DEBUG
+    // // END DEBUG
 
     if (planning_state_->last_planned_curve_.empty() || excess_limit) {
 
+        // DEBUG
+        std::cout << "Planning from current state" << std::endl;
+        std::cout << "v: " << vehicle_movement_state.velocity_ << ", a: " << vehicle_movement_state.acceleration_ << std::endl;
+        // END DEBUG 
 
         start_state_ = {0.0, vehicle_movement_state.velocity_, vehicle_movement_state.acceleration_};
     }
