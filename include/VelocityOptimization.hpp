@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:08
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-17 16:04:22
+ * @LastEditTime: 2022-08-18 14:24:59
  * @Description: velocity optimization.
  */
 
@@ -132,7 +132,7 @@ class VelocityOptimizer {
 
     std::vector<std::vector<double>> generateEqualConstraints(const std::vector<Cube2D<double>>& cube_path);
 
-    std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>> generatePolynimalUnequalConstraints(const std::vector<Cube2D<double>>& cube_path, const double& max_velocity, const double& min_velocity, const double& max_acceleration, const double& min_acceleration);
+    std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>> generatePolynimalUnequalConstraints(const std::vector<Cube2D<double>>& cube_path, const double& start_velocity, const double& max_velocity, const double& min_velocity, const double& max_acceleration, const double& min_acceleration);
 
     
 

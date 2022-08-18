@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-18 12:39:14
+ * @LastEditTime: 2022-08-18 16:14:22
  * @Description: velocity optimization.
  */
 
@@ -689,7 +689,7 @@ bool OoqpOptimizationInterface::solve(const Eigen::SparseMatrix<double, Eigen::R
 }
 
 VelocityOptimizer::VelocityOptimizer() {
-    ooqp_itf_ = new OoqpOptimizationInterface();
+    // ooqp_itf_ = new OoqpOptimizationInterface();
 
 }
 
@@ -853,7 +853,7 @@ void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cu
     std::vector<std::vector<double>> equal_constraints = generateEqualConstraints(cube_path);
 
     // ~Stage IV: calculate polynomial inequality constraints
-    std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>> polynomial_unequal_constraints = generatePolynimalUnequalConstraints(cube_path, max_velocity, min_velocity, max_acceleration, min_acceleration);
+    std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>> polynomial_unequal_constraints = generatePolynimalUnequalConstraints(cube_path, start_state[1], max_velocity, min_velocity, max_acceleration, min_acceleration);
 
 
 
@@ -976,7 +976,7 @@ std::vector<std::vector<double>> VelocityOptimizer::generateEqualConstraints(con
     return equal_constraints;
 }
 
-std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>> VelocityOptimizer::generatePolynimalUnequalConstraints(const std::vector<Cube2D<double>>& cube_path, const double& max_velocity, const double& min_velocity, const double& max_acceleration, const double& min_acceleration) {
+std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<double>> VelocityOptimizer::generatePolynimalUnequalConstraints(const std::vector<Cube2D<double>>& cube_path, const double& start_velocity, const double& max_velocity, const double& min_velocity, const double& max_acceleration, const double& min_acceleration) {
     // Initialize
     int variables_num = static_cast<int>(cube_path.size()) * 6;
     int n = static_cast<int>(cube_path.size());
@@ -985,19 +985,44 @@ std::tuple<std::vector<std::vector<double>>, std::vector<double>, std::vector<do
     std::vector<double> upper_boundaries;
     
     // Supply velocity constraints
-    // For the first cube, there is no velocity contraints
-    for (int i = 2; i < n; i++) {
-        int current_cube_start_index = i * 6;
-        double time_span = cube_path[i].t_end_ - cube_path[i].t_start_;
-        for (int j = current_cube_start_index; j < current_cube_start_index + 5; j++) {
-            std::vector<double> current_velocity_constraints_coefficients(variables_num, 0.0);
-            current_velocity_constraints_coefficients[j + 1] = 5.0;
-            current_velocity_constraints_coefficients[j] = -5.0;
-            upper_boundaries.emplace_back(max_velocity * time_span);
-            lower_boundaries.emplace_back(min_velocity * time_span);
-            coefficients.emplace_back(current_velocity_constraints_coefficients);
+    if (start_velocity <= max_velocity) {
+        // Start velocity is within the speed limitation, constraining all the velocity in the profile
+        for (int i = 0; i < n; i++) {
+            int current_cube_start_index = i * 6;
+            double time_span = cube_path[i].t_end_ - cube_path[i].t_start_;
+            for (int j = current_cube_start_index; j < current_cube_start_index + 5; j++) {
+                std::vector<double> current_velocity_constraints_coefficients(variables_num, 0.0);
+                current_velocity_constraints_coefficients[j + 1] = 5.0;
+                current_velocity_constraints_coefficients[j] = -5.0;
+                upper_boundaries.emplace_back(max_velocity * time_span);
+                lower_boundaries.emplace_back(min_velocity * time_span);
+                coefficients.emplace_back(current_velocity_constraints_coefficients);
+            }
         }
+    } else {
+        // Start velocity excesses the speed limitation, constraining all the velocity using a linear profile
+        double velocity_diff = start_velocity - max_velocity;
+        double velocity_diff_interval = velocity_diff / (n - 1);
+        std::vector<double> max_velocities(n, 0.0);
+        for (int i = 0; i < n; i++) {
+            max_velocities[i] = start_velocity + LARGE_EPS - (i * velocity_diff_interval);
+        }
+
+        for (int i = 0; i < n; i++) {
+            int current_cube_start_index = i * 6;
+            double time_span = cube_path[i].t_end_ - cube_path[i].t_start_;
+            for (int j = current_cube_start_index; j < current_cube_start_index + 5; j++) {
+                std::vector<double> current_velocity_constraints_coefficients(variables_num, 0.0);
+                current_velocity_constraints_coefficients[j + 1] = 5.0;
+                current_velocity_constraints_coefficients[j] = -5.0;
+                upper_boundaries.emplace_back(max_velocities[i] * time_span);
+                lower_boundaries.emplace_back(min_velocity * time_span);
+                coefficients.emplace_back(current_velocity_constraints_coefficients);
+            }
+        }
+
     }
+
 
     // Supply acceleration constraints
     for (int i = 0; i < n; i++) {
