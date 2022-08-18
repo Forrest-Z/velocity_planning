@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-18 16:14:22
+ * @LastEditTime: 2022-08-18 16:58:13
  * @Description: velocity optimization.
  */
 
@@ -1201,8 +1201,7 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
 
     // // END DEBUG
 
-    // Construct s-t graph
-    st_graph_ = new StGraph(velocity_planning_curve, st_graph_param, vehicle_movement_state.velocity_);
+
 
     // Supply start state
     bool excess_limit = false;
@@ -1223,6 +1222,8 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
             // END DEBUG 
 
             start_state_ = {0.0, planning_state_->v_[lower_index], planning_state_->a_[lower_index]};
+            // Construct s-t graph
+            st_graph_ = new StGraph(velocity_planning_curve, st_graph_param, planning_state_->v_[lower_index]);
         }
     } 
 
@@ -1243,6 +1244,8 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
         // END DEBUG 
 
         start_state_ = {0.0, vehicle_movement_state.velocity_, vehicle_movement_state.acceleration_};
+        // Construct s-t graph
+        st_graph_ = new StGraph(velocity_planning_curve, st_graph_param, vehicle_movement_state.velocity_);
     }
 
     // // DEBUG
