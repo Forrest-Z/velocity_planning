@@ -301,10 +301,10 @@ void DecisionMaking::SubVehicle::maintainStates() {
                     VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->expected_state_));
                     v_planner->runOnce(obstacles);
 
-                    if (!(&expected_state_)->velocity_profile_generation_state_) {
-                        velocityPlanningForState(&(expected_state_), obstacles, false);
-                        (&(expected_state_))->velocity_planning_from_previous_version_ = true;
-                    }
+                    // if (!(&expected_state_)->velocity_profile_generation_state_) {
+                    //     velocityPlanningForState(&(expected_state_), obstacles, false);
+                    //     (&(expected_state_))->velocity_planning_from_previous_version_ = true;
+                    // }
 
                     
 
@@ -439,10 +439,10 @@ void DecisionMaking::SubVehicle::maintainStates() {
                 VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->choosed_state_));
                 v_planner->runOnce(obstacles);
 
-                if (!(&choosed_state_)->velocity_profile_generation_state_) {
-                    velocityPlanningForState(&(choosed_state_), obstacles, false);
-                    (&choosed_state_)->velocity_planning_from_previous_version_ = true;
-                }
+                // if (!(&choosed_state_)->velocity_profile_generation_state_) {
+                //     velocityPlanningForState(&(choosed_state_), obstacles, false);
+                //     (&choosed_state_)->velocity_planning_from_previous_version_ = true;
+                // }
                 
 
                 if (!this->choosed_state_.getSafety() || !this->choosed_state_.getCapability()) {
@@ -489,10 +489,10 @@ void DecisionMaking::SubVehicle::maintainStates() {
                     VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->choosed_state_));
                     v_planner->runOnce(obstacles);
 
-                    if (!(&choosed_state_)->velocity_profile_generation_state_) {
-                        velocityPlanningForState(&(choosed_state_), obstacles, false);
-                        (&choosed_state_)->velocity_planning_from_previous_version_ = true;
-                    }
+                    // if (!(&choosed_state_)->velocity_profile_generation_state_) {
+                    //     velocityPlanningForState(&(choosed_state_), obstacles, false);
+                    //     (&choosed_state_)->velocity_planning_from_previous_version_ = true;
+                    // }
 
                     if (!this->choosed_state_.getSafety() || !this->choosed_state_.getCapability()) {
                         // 如果重新进行速度规划后发现选中状态不可行，则要重新开始路径规划

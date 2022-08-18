@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-17 17:22:52
+ * @LastEditTime: 2022-08-18 08:52:35
  * @Description: velocity optimization.
  */
 
@@ -26,7 +26,7 @@ bool OsqpOptimizationInterface::runOnce(const std::vector<double>& ref_times, co
     // ~Stage III: solve 
     OsqpEigen::Solver solver;
 
-    solver.settings()->setVerbosity(true);
+    solver.settings()->setVerbosity(false);
 
     solver.settings()->setWarmStart(true);
 
@@ -47,7 +47,7 @@ bool OsqpOptimizationInterface::runOnce(const std::vector<double>& ref_times, co
     Eigen::VectorXd QPSolution;
 
     // solve the QP problem
-    if (!solver.solve()) return 1;
+    if (!solver.solve()) return false;
 
     QPSolution = solver.getSolution();
     std::cout << "QPSolution: " << std::endl << QPSolution << std::endl;
@@ -113,7 +113,7 @@ void OsqpOptimizationInterface::calculateConstraintsMatrix(const std::vector<dou
             @equal_constraints: the constraints for the continuity between two adjacent cubes
             @polynomial_unequal_constraints: the constraints for the limitation of velocity and acceleration
     */
-    int constraints_num = 3 + 0 + (unequal_constraints[0].size() - 1) + equal_constraints.size() + std::get<1>(polynomial_unequal_constraints).size();
+    int constraints_num = 3 + 1 + (unequal_constraints[0].size() - 1) + equal_constraints.size() + std::get<1>(polynomial_unequal_constraints).size();
 
     Eigen::MatrixXd constraints_matrix = Eigen::MatrixXd::Zero(constraints_num, variables_num);
     Eigen::VectorXd lower_bounds_vec = Eigen::MatrixXd::Zero(constraints_num, 1);
@@ -128,10 +128,10 @@ void OsqpOptimizationInterface::calculateConstraintsMatrix(const std::vector<dou
     lower_bounds_vec(iter) = start_state[0];
     upper_bounds_vec(iter) = start_state[0];
     iter += 1;
-    // constraints_matrix(iter, variables_num - 1) = 1.0;
-    // lower_bounds_vec(iter) = end_state[0];
-    // upper_bounds_vec(iter) = end_state[0];
-    // iter += 1;
+    constraints_matrix(iter, variables_num - 1) = 1.0;
+    lower_bounds_vec(iter) = end_state[0];
+    upper_bounds_vec(iter) = end_state[0];
+    iter += 1;
     // Supply start point velocity constraint
     constraints_matrix(iter, 0) = -5.0, constraints_matrix(iter, 1) = 5.0;
     lower_bounds_vec(iter) = start_state[1] * start_cube_time_span;
@@ -866,10 +866,14 @@ void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cu
     // ~Stage V: optimization
     std::vector<double> optimized_s;
     double objective_value = 0.0;
-    ooqp_itf_->load(ref_stamps, start_state, end_s, unequal_constraints, equal_constraints, polynomial_unequal_constraints);
-    bool optimization_res = ooqp_itf_->runOnce(&optimized_s, &objective_value);
+    // ooqp_itf_->load(ref_stamps, start_state, end_s, unequal_constraints, equal_constraints, polynomial_unequal_constraints);
+    // bool optimization_res = ooqp_itf_->runOnce(&optimized_s, &objective_value);
+
+    std::array<double, 3> end_state = {end_s, 0.0, 0.0};
+    bool optimization_res = OsqpOptimizationInterface::runOnce(ref_stamps, start_state, end_state, unequal_constraints, equal_constraints, polynomial_unequal_constraints, &optimized_s, &objective_value);
 
     // DEBUG
+    std::cout << "end s: " << end_s << std::endl;
     std::cout << "optimization res: " << optimization_res << std::endl;
     // END DEBUG
 
@@ -890,7 +894,7 @@ std::array<std::vector<double>, 2> VelocityOptimizer::generateUnequalConstraints
 
     // Calculate unequal constraints
     for (int i = 0; i < variables_num; i++) {
-        if (i == 0 || i == variables_num - 1) {
+        if (i == 0) {
             // Delete unequal constraints for start point and end point
             continue;
         }
@@ -1213,6 +1217,10 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
         start_state_ = {0.0, vehicle_movement_state.velocity_, vehicle_movement_state.acceleration_};
     }
 
+    // // DEBUG
+    // start_state_ = {0.0, vehicle_movement_state.velocity_, vehicle_movement_state.acceleration_};
+    // // END DEBUG
+
     
 
 }
@@ -1233,7 +1241,7 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
 
     bool graph_success = st_graph_->runOnce(obstacles, &cube_paths, &last_s_range);
     if (!graph_success) {
-        // planning_state_->setSafety(false);
+        planning_state_->setSafety(false);
         planning_state_->velocity_profile_generation_state_ = false;
         std::cout << "State name: " << planning_state_->getStateName() << " is not safe due to graph failure." << std::endl;
         return false;
@@ -1261,7 +1269,7 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     } 
 
     if (!optimization_success) {
-        // planning_state_->setSafety(false);
+        planning_state_->setSafety(false);
         planning_state_->velocity_profile_generation_state_ = false;
         std::cout << "State name: " << planning_state_->getStateName() << " is not safe due to optimization failure." << std::endl;
         return false;

@@ -72,19 +72,19 @@ void DecisionMaking::SubVehicle::checkStates() {
     double time_consumption = static_cast<double>((end_time - start_time)) / CLOCKS_PER_SEC;
     std::cout << "Time consumption: " << time_consumption << std::endl;
 
-    // Calculate velocity for the states, whose velocity profile generation is failed
-    if (!(&(states_set_[StateNames::FORWARD]))->velocity_profile_generation_state_) {
-        velocityPlanningForState(&(states_set_[StateNames::FORWARD]), obstacles, true);
-        (&(states_set_[StateNames::FORWARD]))->velocity_planning_from_previous_version_ = true;
-    }
-    if (!(&(states_set_[StateNames::TURN_LEFT]))->velocity_profile_generation_state_) {
-        velocityPlanningForState(&(states_set_[StateNames::TURN_LEFT]), obstacles, true);
-        (&(states_set_[StateNames::TURN_LEFT]))->velocity_planning_from_previous_version_ = true;
-    }
-    if (!(&(states_set_[StateNames::TURN_RIGHT]))->velocity_profile_generation_state_) {
-        velocityPlanningForState(&(states_set_[StateNames::TURN_RIGHT]), obstacles, true);
-        (&(states_set_[StateNames::TURN_RIGHT]))->velocity_planning_from_previous_version_ = true;
-    }
+    // // Calculate velocity for the states, whose velocity profile generation is failed
+    // if (!(&(states_set_[StateNames::FORWARD]))->velocity_profile_generation_state_) {
+    //     velocityPlanningForState(&(states_set_[StateNames::FORWARD]), obstacles, true);
+    //     (&(states_set_[StateNames::FORWARD]))->velocity_planning_from_previous_version_ = true;
+    // }
+    // if (!(&(states_set_[StateNames::TURN_LEFT]))->velocity_profile_generation_state_) {
+    //     velocityPlanningForState(&(states_set_[StateNames::TURN_LEFT]), obstacles, true);
+    //     (&(states_set_[StateNames::TURN_LEFT]))->velocity_planning_from_previous_version_ = true;
+    // }
+    // if (!(&(states_set_[StateNames::TURN_RIGHT]))->velocity_profile_generation_state_) {
+    //     velocityPlanningForState(&(states_set_[StateNames::TURN_RIGHT]), obstacles, true);
+    //     (&(states_set_[StateNames::TURN_RIGHT]))->velocity_planning_from_previous_version_ = true;
+    // }
 
 
     // END DEBUG
