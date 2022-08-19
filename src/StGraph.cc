@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-14 10:22:30
+ * @LastEditTime: 2022-08-19 13:21:38
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -253,11 +253,11 @@ Cube2D<double> StGraph::gridCubeToRealCube(const Cube2D<int>& grid_cube) {
 
 
 void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
-    if (obstacle.getObstacleVelocity() < 0.1) {
-        // Ignore static obstacles, they will be processed by other logic
-        // TODO: complete this logic
-        return;
-    }
+    // if (obstacle.getObstacleVelocity() < 0.1) {
+    //     // Ignore static obstacles, they will be processed by other logic
+    //     // TODO: complete this logic
+    //     return;
+    // }
 
     // DEBUG
     std::cout << "load obstacle success" << std::endl;
@@ -286,6 +286,16 @@ void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
 
             continue;
         }
+
+        if (ego_vehicle_start_collision_index == 0) {
+            
+            // DEBUG
+            std::cout << "Rear vehicle, ignored" << std::endl;
+            // END DEBUG
+
+            continue;
+        }
+
         // Calculate collision information
         double t_start = (ego_vehicle_start_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
         double t_end = (ego_vehicle_end_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
