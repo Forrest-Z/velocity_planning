@@ -334,10 +334,19 @@ void DecisionMaking::SubVehicle::maintainStates() {
                         // Reload
                         if (choosed_state_.getStateName() == StateNames::FORWARD) {
                             (&states_set_[StateNames::FORWARD])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                            (&states_set_[StateNames::FORWARD])->s_ = choosed_state_.s_;
+                            (&states_set_[StateNames::FORWARD])->v_ = choosed_state_.v_;
+                            (&states_set_[StateNames::FORWARD])->a_ = choosed_state_.a_;
                         } else if (choosed_state_.getStateName() == StateNames::TURN_LEFT) {
                             (&states_set_[StateNames::TURN_LEFT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                            (&states_set_[StateNames::TURN_LEFT])->s_ = choosed_state_.s_;
+                            (&states_set_[StateNames::TURN_LEFT])->v_ = choosed_state_.v_;
+                            (&states_set_[StateNames::TURN_LEFT])->a_ = choosed_state_.a_;
                         } else if (choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
                             (&states_set_[StateNames::TURN_RIGHT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                            (&states_set_[StateNames::TURN_RIGHT])->s_ = choosed_state_.s_;
+                            (&states_set_[StateNames::TURN_RIGHT])->v_ = choosed_state_.v_;
+                            (&states_set_[StateNames::TURN_RIGHT])->a_ = choosed_state_.a_;
                         } else {
                             assert(false);
                         }
@@ -467,13 +476,22 @@ void DecisionMaking::SubVehicle::maintainStates() {
                     // 发布新版路径，保持加速度模式
                     this->choosed_state_.publishCurveMsgVelocityMaintain(this->motion_planning_curve_pub_);
                     // continue;
-                    // Load last planned curve to state machine
+                        // Reload
                     if (choosed_state_.getStateName() == StateNames::FORWARD) {
                         (&states_set_[StateNames::FORWARD])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                        (&states_set_[StateNames::FORWARD])->s_ = choosed_state_.s_;
+                        (&states_set_[StateNames::FORWARD])->v_ = choosed_state_.v_;
+                        (&states_set_[StateNames::FORWARD])->a_ = choosed_state_.a_;
                     } else if (choosed_state_.getStateName() == StateNames::TURN_LEFT) {
                         (&states_set_[StateNames::TURN_LEFT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                        (&states_set_[StateNames::TURN_LEFT])->s_ = choosed_state_.s_;
+                        (&states_set_[StateNames::TURN_LEFT])->v_ = choosed_state_.v_;
+                        (&states_set_[StateNames::TURN_LEFT])->a_ = choosed_state_.a_;
                     } else if (choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
                         (&states_set_[StateNames::TURN_RIGHT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                        (&states_set_[StateNames::TURN_RIGHT])->s_ = choosed_state_.s_;
+                        (&states_set_[StateNames::TURN_RIGHT])->v_ = choosed_state_.v_;
+                        (&states_set_[StateNames::TURN_RIGHT])->a_ = choosed_state_.a_;
                     } else {
                         assert(false);
                     }
@@ -508,13 +526,22 @@ void DecisionMaking::SubVehicle::maintainStates() {
                         // 发布新版路径，保持加速度模式
                         this->choosed_state_.publishCurveMsgVelocityMaintain(this->motion_planning_curve_pub_);
 
-                        // Load last planned curve to state machine
+                        // Reload
                         if (choosed_state_.getStateName() == StateNames::FORWARD) {
                             (&states_set_[StateNames::FORWARD])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                            (&states_set_[StateNames::FORWARD])->s_ = choosed_state_.s_;
+                            (&states_set_[StateNames::FORWARD])->v_ = choosed_state_.v_;
+                            (&states_set_[StateNames::FORWARD])->a_ = choosed_state_.a_;
                         } else if (choosed_state_.getStateName() == StateNames::TURN_LEFT) {
                             (&states_set_[StateNames::TURN_LEFT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                            (&states_set_[StateNames::TURN_LEFT])->s_ = choosed_state_.s_;
+                            (&states_set_[StateNames::TURN_LEFT])->v_ = choosed_state_.v_;
+                            (&states_set_[StateNames::TURN_LEFT])->a_ = choosed_state_.a_;
                         } else if (choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
                             (&states_set_[StateNames::TURN_RIGHT])->last_planned_curve_ = choosed_state_.last_planned_curve_;
+                            (&states_set_[StateNames::TURN_RIGHT])->s_ = choosed_state_.s_;
+                            (&states_set_[StateNames::TURN_RIGHT])->v_ = choosed_state_.v_;
+                            (&states_set_[StateNames::TURN_RIGHT])->a_ = choosed_state_.a_;
                         } else {
                             assert(false);
                         }
