@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-19 11:13:25
+ * @LastEditTime: 2022-08-19 11:21:53
  * @Description: velocity optimization.
  */
 
@@ -1171,10 +1171,10 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
         double last_s = nearest_index * LANE_GAP_DISTANCE;
         int lower_index = std::lower_bound(planning_state_->s_.begin(), planning_state_->s_.end(), last_s) - planning_state_->s_.begin();
 
-        // DEBUG
-        std::cout << "DEBUGDEBUGDEBUG" << std::endl;
-        std::cout << "Lower index: " << lower_index << std::endl;
-        // END DEBUG
+        // // DEBUG
+        // std::cout << "DEBUGDEBUGDEBUG" << std::endl;
+        // std::cout << "Lower index: " << lower_index << std::endl;
+        // // END DEBUG
 
         if (lower_index < planning_state_->s_.size()) {
             st_graph_param.velocity_max = std::max(st_graph_param.velocity_max, planning_state_->v_[lower_index]);
