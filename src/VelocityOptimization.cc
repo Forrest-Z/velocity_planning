@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-18 16:58:13
+ * @LastEditTime: 2022-08-19 09:41:34
  * @Description: velocity optimization.
  */
 
@@ -1250,6 +1250,8 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
 
     // // DEBUG
     // start_state_ = {0.0, vehicle_movement_state.velocity_, vehicle_movement_state.acceleration_};
+    // // Construct s-t graph
+    // st_graph_ = new StGraph(velocity_planning_curve, st_graph_param, vehicle_movement_state.velocity_);
     // // END DEBUG
 
     

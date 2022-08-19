@@ -676,10 +676,9 @@ void DecisionMaking::SubVehicle::motionPlanningThread() {
         }
 
         // 当满足三大状态时
-        if (this->choosed_state_.getStateName() == StateNames::FORWARD || this->choosed_state_.getStateName() == StateNames::TURN_LEFT || this->choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
-            // this->maintainStates();
+        if (this->choosed_state_.getStateName() == StateNames::TURN_LEFT || this->choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
+            this->maintainStates();
         }
-        sleep(2);
         // 当选中的是倒车状态时
         if (this->choosed_state_.getStateName() == StateNames::REVERSE) {
             // 可视化路径
