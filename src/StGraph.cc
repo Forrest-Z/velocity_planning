@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-19 13:21:38
+ * @LastEditTime: 2022-08-19 15:11:31
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -259,13 +259,13 @@ void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
     //     return;
     // }
 
-    // DEBUG
-    std::cout << "load obstacle success" << std::endl;
-    // END DEBUG
+    // // DEBUG
+    // std::cout << "load obstacle success" << std::endl;
+    // // END DEBUG
 
-    // DEBUG
-    std::cout << "Obstacle trahectory number: " << obstacle.getPredictedTrajectoryNumber() << std::endl;
-    // END DEBUG
+    // // DEBUG
+    // std::cout << "Obstacle trajectory number: " << obstacle.getPredictedTrajectoryNumber() << std::endl;
+    // // END DEBUG
 
     for (int i = 0; i < obstacle.getPredictedTrajectoryNumber(); i++) {
         // Construct occupied area
@@ -280,18 +280,18 @@ void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
 
         if (!is_collision) {
             
-            // DEBUG
-            std::cout << "Without collision" << std::endl;
-            // END DEBUG
+            // // DEBUG
+            // std::cout << "Without collision" << std::endl;
+            // // END DEBUG
 
             continue;
         }
 
         if (ego_vehicle_start_collision_index == 0) {
             
-            // DEBUG
-            std::cout << "Rear vehicle, ignored" << std::endl;
-            // END DEBUG
+            // // DEBUG
+            // std::cout << "Rear vehicle, ignored" << std::endl;
+            // // END DEBUG
 
             continue;
         }

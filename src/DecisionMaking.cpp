@@ -758,6 +758,7 @@ bool DecisionMaking::SubVehicle::motionPlanningUncapableJudgement() {
                 this->mission_start_mutex_.lock();
                 this->MISSION_START_FLAG_ = false;
                 this->mission_start_mutex_.unlock();
+
                 result = true;
                 LOG(INFO) << "报告无法规划成功";
                 // 计数器归零
@@ -766,6 +767,13 @@ bool DecisionMaking::SubVehicle::motionPlanningUncapableJudgement() {
             } else {
                 LOG(INFO) << "报告无法规划失败";
                 // 什么都不做
+            }
+            std_srvs::Trigger destination_reached_service;
+            this->destination_reached_service_client_.call(destination_reached_service);
+            if (destination_reached_service.response.success == true) {
+                LOG(INFO) << "Mission failed due to the unreacheable goal, skip to the next mission";
+            } else {
+                LOG(INFO) << "任务结束失败";
             }
         } else {
             // 全自动模式

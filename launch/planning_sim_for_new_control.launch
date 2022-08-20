@@ -115,7 +115,7 @@
     <!-- 变量，是否使用环形雷达 -->
     <param name="is_surround_radar_enable" value="false" />
     <!-- 变量，是否为全自动模式 -->
-    <param name="is_total_autonomous" value="true" />
+    <param name="is_total_autonomous" value="false" />
     <!-- 变量，是否允许倒车和转向 -->
     <param name="rotate_and_reverse_enable" value="true" />
     <!-- 订阅环形雷达 -->

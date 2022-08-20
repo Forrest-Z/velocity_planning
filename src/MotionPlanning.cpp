@@ -71,7 +71,19 @@ void DecisionMaking::SubVehicle::updateMapInformation() {
         // Judge whether the goal point is unreachable
         if (map_service.response.status == vec_map_cpp_msgs::GetGuidedCurvesResponse::GOAL_UNREACHABLE) {
             LOG(INFO) << "The goal is unreachable";
-            continue;
+            // 如果任务结束，重置目标点和开始任务标志位
+            this->mission_start_mutex_.lock();
+            this->MISSION_START_FLAG_ = false;
+            this->mission_start_mutex_.unlock();
+            // 调用到达目标点服务
+            std_srvs::Trigger destination_reached_service;
+            this->destination_reached_service_client_.call(destination_reached_service);
+            if (destination_reached_service.response.success == true) {
+                LOG(INFO) << "Mission failed due to the unreacheable goal, skip to the next mission";
+            } else {
+                LOG(INFO) << "任务结束失败";
+            }
+            break;
         }
         // 获取服务返回值，对于起点和终点的判断
         if (map_service.response.current_pose_state == vec_map_cpp_msgs::GetGuidedCurvesResponse::WRONG_ORIENTATION) {

@@ -32,7 +32,7 @@
 #define COMMON_DECCELERATION 3.2  // 设定的减速正常减速度(适用于本车,用于限制最大减速度)
 #define MAX_NORMAL_ACCELERATION 1.8  // 根据文档，正常汽车的法向加速度不大于1.8m/s^2时人没有反应，不大于3.6m/s^2时人可以忍受(适用于本车,用于限制最大加速度和最大曲率)
 #define MAX_NORMAL_JERK 1.0  // 根据文档，汽车法向加加速度在0.4m/s^3 ~ 1.0m/s^3时，人可以忍受(适用于本车,用于限制最大曲率)
-#define OBSTACLE_MARGIN 0.2  // 障碍物预测路径点之间的间隔
+#define OBSTACLE_MARGIN 1.0  // 障碍物预测路径点之间的间隔
 #define EXTENDED_PATH_SMOOTH_INDEXES 20  // 延伸路径用于生成路径平滑的长度
 #define SAMPLE_LENGTH 5.0  // 规划时的纵向采样间隔
 #define AVOIDANCE_VELOCITY 1.9  // 避障状态下设定的目标速度
