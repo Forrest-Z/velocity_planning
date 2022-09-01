@@ -1204,7 +1204,15 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
     // // END DEBUG
 
     // st_graph_param.s_max = (cut_end_point - current_position_index_in_trajectory) * LANE_GAP_DISTANCE;
-    PathPlanningUtilities::Curve velocity_planning_curve{total_curve.begin() + current_position_index_in_trajectory, total_curve.begin() + cut_end_point};
+
+    double real_planning_length = (std::min(total_curve.begin() + cut_end_point, total_curve.end()) - (total_curve.begin() + current_position_index_in_trajectory)) / LANE_GAP_DISTANCE;
+
+    if (real_planning_length <= 10.0) {
+        return;
+    }
+
+    PathPlanningUtilities::Curve velocity_planning_curve{total_curve.begin() + current_position_index_in_trajectory, std::min(total_curve.begin() + cut_end_point, total_curve.end())};
+
 
     // // DEBUG
     // std_msgs::ColorRGBA c;
@@ -1280,6 +1288,9 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
 bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles) {
     
     if (!planning_state_->getCapability()) {
+        return false;
+    }
+    if (st_graph_ == nullptr) {
         return false;
     }
 
