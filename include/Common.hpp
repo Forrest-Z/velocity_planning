@@ -33,6 +33,7 @@
 #include <geometry_msgs/Pose.h>
 #include <std_srvs/Trigger.h>
 #include <self_test/self_test.h>
+#include <sensor_msgs/Imu.h>
 #include <dbw_mkz_msgs/SteeringReport.h>
 #include <dbw_mkz_msgs/SurroundReport.h>
 #include <dbw_mkz_msgs/TurnSignal.h>
@@ -169,7 +170,7 @@ class SubVehicle{
     // 更新车辆速度和速度朝向
     void updateVehicleMovement(const std_msgs::Float64::ConstPtr velocity_msg);
 
-    void updateVehicleAcceleration(const std_msgs::Float64::ConstPtr acceleration_msg);
+    void updateVehicleAcceleration(const sensor_msgs::ImuConstPtr acceleration_msg);
 
     // 更新车辆曲率
     void updateVehicleCurvature(const std_msgs::Float64::ConstPtr curvature_msg);

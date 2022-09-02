@@ -288,7 +288,6 @@ void DecisionMaking::SubVehicle::updateVehicleMovement(const std_msgs::Float64::
     // 更新车辆速度信息
     this->current_vehicle_movement_mutex_.lock();
     this->current_vehicle_movement_.velocity_ = velocity_msg->data;
-    this->current_vehicle_movement_.acceleration_ = 0.0;
     this->current_vehicle_movement_mutex_.unlock();
     // 确定车辆运动信息加载成功
     this->vehicle_movement_ready_flag_mutex_.lock();
@@ -306,10 +305,10 @@ void DecisionMaking::SubVehicle::updateVehicleMovement(const std_msgs::Float64::
     
 }
 
-void DecisionMaking::SubVehicle::updateVehicleAcceleration(const std_msgs::Float64::ConstPtr acceleration_msg) {
+void DecisionMaking::SubVehicle::updateVehicleAcceleration(const sensor_msgs::ImuConstPtr acceleration_msg) {
     // Update acceleration information
     this->current_vehicle_movement_mutex_.lock();
-    this->current_vehicle_movement_.acceleration_ = acceleration_msg->data;
+    this->current_vehicle_movement_.acceleration_ = acceleration_msg->linear_acceleration.x;
     this->current_vehicle_movement_mutex_.unlock();
 }
 
@@ -676,7 +675,7 @@ void DecisionMaking::SubVehicle::motionPlanningThread() {
         }
 
         // 当满足三大状态时
-        if (this->choosed_state_.getStateName() == StateNames::TURN_LEFT || this->choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
+        if (this->choosed_state_.getStateName() == StateNames::TURN_LEFT || this->choosed_state_.getStateName() == StateNames::TURN_RIGHT || this->choosed_state_.getStateName() == StateNames::FORWARD) {
             this->maintainStates();
         }
         // 当选中的是倒车状态时

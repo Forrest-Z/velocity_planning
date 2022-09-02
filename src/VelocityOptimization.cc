@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-19 15:18:54
+ * @LastEditTime: 2022-09-02 17:13:26
  * @Description: velocity optimization.
  */
 
@@ -790,8 +790,13 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
     double min_jerk = static_cast<double>(INT_MAX);
     int win_index = -1;
     std::sort(s_info.rbegin(), s_info.rend());
-    for (int i = 0; i < std::min(3, static_cast<int>(s_info.size())); i++) {
-        int cur_jerk = values_[s_info[i].second];
+    for (int i = 0; i < std::min(1, static_cast<int>(s_info.size())); i++) {
+        double cur_jerk = values_[s_info[i].second];
+        
+        // // DEBUG
+        // std::cout << "s: " << s_info[i].first << ", jerk: " << cur_jerk << ", min jerk: " << min_jerk << std::endl;
+        // // END DEBUG
+
         if (cur_jerk < min_jerk) {
             min_jerk = cur_jerk;
             win_index = s_info[i].second;
@@ -1241,6 +1246,22 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
         if (lower_index == planning_state_->s_.size()) {
             excess_limit = true;
         }
+
+        // TODO: adjust and test the logic
+        if (!excess_limit) {
+            // Judge the difference between the current velocity and the corresponding velocity in the previous trajectory
+            if ((planning_state_->v_[lower_index] - vehicle_movement_state.velocity_) * planning_state_->a_[lower_index] < 0.0) {
+                excess_limit = true;
+            }
+            // if (fabs(planning_state_->v_[lower_index] - vehicle_movement_state.velocity_) > 1.5) {
+            //     excess_limit = true;
+            // }
+        }
+
+        // DEBUG
+        excess_limit = true;
+        // END DEBUG
+
         if (!excess_limit) {
 
             // DEBUG
@@ -1269,6 +1290,9 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
         std::cout << "Planning from current state" << std::endl;
         std::cout << "v: " << vehicle_movement_state.velocity_ << ", a: " << vehicle_movement_state.acceleration_ << std::endl;
         // END DEBUG 
+
+        // Test limit the acceleration
+        vehicle_movement_state.acceleration_ *= 0.7;
 
         start_state_ = {0.0, vehicle_movement_state.velocity_, vehicle_movement_state.acceleration_};
         // Construct s-t graph

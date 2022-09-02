@@ -71,7 +71,7 @@
     <!-- 订阅控制状态消息-->
     <param name="control_report_topic" value="/vehicle/core_report" />
     <!-- Subscribe acc -->
-    <param name="acceleration_topic" value="/vehicle/filtered_accel"/>
+    <param name="acceleration_topic" value="/vehicle/imu/data_raw"/>
     <!-- 发布开始任务服务 -->
     <param name="mission_start_service" value="/start_main"/>
     <!-- 订阅障碍物 -->
