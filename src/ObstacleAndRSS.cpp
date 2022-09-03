@@ -655,6 +655,9 @@ DecisionMaking::RSS::OccupationArea::OccupationArea(const StandardState &judge_s
 
 // 构造空气墙类型的占用区
 DecisionMaking::RSS::OccupationArea::OccupationArea(const vec_map_cpp_msgs::VirtualObstacle &obstacle, int sample_gap) {
+    if (obstacle.points.size() == 0) {
+        return;
+    }
     // 初始化矩形框
     for (size_t i = 0; i < obstacle.points.size() - 1; i++) {
         Rectangle rectangle;
