@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-04 08:29:17
+ * @LastEditTime: 2022-09-04 15:24:05
  * @Description: velocity optimization.
  */
 
@@ -1327,7 +1327,7 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     // std::cout << "Obstacle number: " << obstacles.size() << std::endl; 
     // // END DEBUG
 
-    // Filter obstacles
+    // Filter obstacles (for simulation only)
     std::vector<DecisionMaking::Obstacle> valid_obstacles;
     for (const auto& obs : obstacles) {
         if (sqrt(pow(planning_state_->getVehicleStartState().position_.x_ - obs.getObstaclePosition().x_, 2) + pow(planning_state_->getVehicleStartState().position_.y_ - obs.getObstaclePosition().y_, 2)) <= 50.0) {

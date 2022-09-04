@@ -75,6 +75,7 @@
 #include "AvoidancePath.hpp"
 #include "StandardState.hpp"
 #include "OccupyArea.hpp"
+#include "LookUpTable.hpp"
 
 
 // extern bool GLOBAL_IS_IN_GROUND_;

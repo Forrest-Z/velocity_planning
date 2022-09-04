@@ -164,7 +164,7 @@ link_directories(/home/fjw/OOQP/OOQP/lib)
 add_executable(${PROJECT_NAME}_node src/MotionPlanningNode.cpp)
 
 ## Declare a C++ library
-add_library(${PROJECT_NAME}_lib src/VelocityOptimization.cc src/StGraph.cc src/MotionPlanning.cpp src/VelocityPlanning.cpp src/PathGenerator.cpp src/PathUtilities.cpp src/DecisionMaking src/StateMaintaining.cpp src/Tools.cpp src/Visualization.cpp src/SubVehicle.cpp src/ObstacleAndRSS.cpp src/MessageConverter.cpp src/SpecialMotionPlanning.cpp src/LowSpeedMotionPlanning.cpp src/ReverseMotionPlanning.cpp src/RotateMotionPlanning.cpp)
+add_library(${PROJECT_NAME}_lib src/LookUpTable.cc src/VelocityOptimization.cc src/StGraph.cc src/MotionPlanning.cpp src/VelocityPlanning.cpp src/PathGenerator.cpp src/PathUtilities.cpp src/DecisionMaking src/StateMaintaining.cpp src/Tools.cpp src/Visualization.cpp src/SubVehicle.cpp src/ObstacleAndRSS.cpp src/MessageConverter.cpp src/SpecialMotionPlanning.cpp src/LowSpeedMotionPlanning.cpp src/ReverseMotionPlanning.cpp src/RotateMotionPlanning.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
