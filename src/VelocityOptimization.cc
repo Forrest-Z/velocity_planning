@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-02 17:13:26
+ * @LastEditTime: 2022-09-04 08:29:17
  * @Description: velocity optimization.
  */
 
@@ -1258,9 +1258,9 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
             // }
         }
 
-        // DEBUG
-        excess_limit = true;
-        // END DEBUG
+        // // DEBUG
+        // excess_limit = true;
+        // // END DEBUG
 
         if (!excess_limit) {
 
@@ -1292,6 +1292,7 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
         // END DEBUG 
 
         // Test limit the acceleration
+        // Acceleration information from the IMU may include noise
         vehicle_movement_state.acceleration_ *= 0.7;
 
         start_state_ = {0.0, vehicle_movement_state.velocity_, vehicle_movement_state.acceleration_};
