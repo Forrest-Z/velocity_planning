@@ -15,7 +15,10 @@ namespace DecisionMaking {
 class Obstacle {
  public:
     // 构造函数和析构函数，构造函数必须显式调用，必须包含障碍物信息为障碍物的id，id为区分不同障碍物的唯一标识符
-    explicit Obstacle(size_t id) {
+
+    Obstacle() = default;
+
+    Obstacle(size_t id) {
         this->id_ = id;
     }
 

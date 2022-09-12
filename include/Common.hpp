@@ -76,6 +76,7 @@
 #include "StandardState.hpp"
 #include "OccupyArea.hpp"
 #include "LookUpTable.hpp"
+#include "GaussianDistribution.hpp"
 
 
 // extern bool GLOBAL_IS_IN_GROUND_;

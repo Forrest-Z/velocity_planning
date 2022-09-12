@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-12 19:24:27
+ * @LastEditTime: 2022-09-12 19:28:11
  * @Description: s-t graph
  */
 
@@ -18,6 +18,7 @@
 #include "Point.hpp"
 #include "Path.hpp"
 #include "OccupyArea.hpp"
+#include "GaussianDistribution.hpp"
 
 
 namespace VelocityPlanning {
@@ -123,9 +124,9 @@ class StGraph {
 
     std::vector<Eigen::Vector2d> gridPossToRealValues(const std::vector<Eigen::Vector2i>& grid_positions);
 
-    void loadObstacle(const DecisionMaking::Obstacle& obstacle);
+    std::vector<std::vector<Eigen::Vector2d>> loadObstacle(const DecisionMaking::Obstacle& obstacle);
 
-    void loadObstacles(const std::vector<DecisionMaking::Obstacle>& obstacles);
+    std::vector<std::vector<std::vector<Eigen::Vector2d>>> loadObstacles(const std::vector<DecisionMaking::Obstacle>& obstacles);
 
     void loadAccelerationLimitation();
 
@@ -160,6 +161,52 @@ class StGraph {
     std::vector<std::vector<Cube2D<int>>> calculated_grid_cubes_columns_;
 
 };
+
+// Uncertainty occupied area only exists given a s-t graph
+class UncertaintyOccupiedArea {
+ public: 
+
+    UncertaintyOccupiedArea();
+
+    UncertaintyOccupiedArea(const std::vector<Eigen::Vector2d>& vertex, const Gaussian2D& gaussian_dis);
+
+    ~UncertaintyOccupiedArea();
+    
+    std::vector<Eigen::Vector2d> vertex_;
+    Gaussian2D gaussian_dis_;
+};
+
+// Describe an obstacle with an uncertainty (calculating from prediction)
+class UncertaintyObstacle {
+ public:
+
+    UncertaintyObstacle();
+
+    UncertaintyObstacle(const DecisionMaking::Obstacle& obs, const Gaussian2D& gaussian_dis);
+
+    ~UncertaintyObstacle();
+
+    DecisionMaking::Obstacle obs_;
+    Gaussian2D gaussian_dis_;
+
+
+    
+};
+
+// Occpuied area is represented with a uncertainty occupied area instead of a set of bool values in the cv::mat
+class UncertaintyStGraph : public StGraph {
+ public:
+
+    using StGraph::StGraph;
+
+    void loadObstacle(const UncertaintyObstacle& uncertainty_obs);
+
+    void loadObstacles(const std::vector<UncertaintyObstacle>& uncertainty_obstacles);
+
+    std::vector<UncertaintyOccupiedArea> uncertainty_occupied_areas_;
+}; 
+
+
 
 
 

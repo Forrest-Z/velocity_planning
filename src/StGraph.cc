@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-19 15:11:31
+ * @LastEditTime: 2022-09-12 19:28:27
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -252,7 +252,7 @@ Cube2D<double> StGraph::gridCubeToRealCube(const Cube2D<int>& grid_cube) {
 
 
 
-void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
+std::vector<std::vector<Eigen::Vector2d>> StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
     // if (obstacle.getObstacleVelocity() < 0.1) {
     //     // Ignore static obstacles, they will be processed by other logic
     //     // TODO: complete this logic
@@ -266,6 +266,8 @@ void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
     // // DEBUG
     // std::cout << "Obstacle trajectory number: " << obstacle.getPredictedTrajectoryNumber() << std::endl;
     // // END DEBUG
+
+    std::vector<std::vector<Eigen::Vector2d>> real_vertex;
 
     for (int i = 0; i < obstacle.getPredictedTrajectoryNumber(); i++) {
         // Construct occupied area
@@ -325,6 +327,9 @@ void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
         // Get four vertice
         std::vector<Eigen::Vector2d> real_vertice = {{t_start, s_start}, {t_start, s_start + projected_length}, {t_end, s_end}, {t_end, s_end - projected_length}};
 
+        // Record
+        real_vertex.emplace_back(real_vertice);
+
         // // DEBUG
         // for (int i = 0; i < 4; i++) {
         //     std::cout << real_vertice[i] << std::endl;
@@ -344,12 +349,19 @@ void StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
         grid_map_2D_->fillObstacleBannedArea(grid_positions);
 
     }
+
+    return real_vertex;
 }
 
-void StGraph::loadObstacles(const std::vector<DecisionMaking::Obstacle>& obstacles) {
+std::vector<std::vector<std::vector<Eigen::Vector2d>>> StGraph::loadObstacles(const std::vector<DecisionMaking::Obstacle>& obstacles) {
+    // Record all the vertex to match the corresponding uncertainty
+    std::vector<std::vector<std::vector<Eigen::Vector2d>>> obstalces_real_vertex;
     for (auto const& obs : obstacles) {
-        loadObstacle(obs);
+        std::vector<std::vector<Eigen::Vector2d>> obs_real_vertex = loadObstacle(obs);
+        obstalces_real_vertex.emplace_back(obs_real_vertex);
     }
+
+    return obstalces_real_vertex;
 }
 
 
@@ -632,6 +644,47 @@ void StGraph::visualization() {
 
 void StGraph::print() {
     grid_map_2D_->print();
+}
+
+UncertaintyOccupiedArea::UncertaintyOccupiedArea() = default;
+
+UncertaintyOccupiedArea::UncertaintyOccupiedArea(const std::vector<Eigen::Vector2i>& vertex, const Gaussian2D& gaussian_dis) {
+    vertex_ = vertex;
+    gaussian_dis_ = gaussian_dis;
+}
+
+UncertaintyOccupiedArea::~UncertaintyOccupiedArea() = default;
+
+UncertaintyObstacle::UncertaintyObstacle() = default;
+
+UncertaintyObstacle::UncertaintyObstacle(const DecisionMaking::Obstacle& obs, const Gaussian2D& gaussian_dis) {
+    obs_ = obs;
+    gaussian_dis_ = gaussian_dis;
+}
+
+UncertaintyObstacle::~UncertaintyObstacle() = default;
+
+void UncertaintyStGraph::loadObstacle(const UncertaintyObstacle& uncertainty_obs) {
+    // Get the specific occupied area
+    std::vector<std::vector<Eigen::Vector2d>> obs_traj_vertex = StGraph::loadObstacle(uncertainty_obs.obs_);
+
+    // Transform uncertainty gaussian distribution
+    // TODO: add this logic, trasform from world to s-t, include two steps: transform from world to frenet, then from frenet to s-t
+    Gaussian2D obs_gaussian_dis;
+
+    // Record
+    for (const auto cur_traj_obs_vertex : obs_traj_vertex) {
+        UncertaintyOccupiedArea uncer_occ_area = UncertaintyOccupiedArea(cur_traj_obs_vertex, obs_gaussian_dis);
+        uncertainty_occupied_areas_.emplace_back(uncer_occ_area);
+    }
+
+}
+
+void UncertaintyStGraph::loadObstacles(const std::vector<UncertaintyObstacle>& uncertainty_obstacles) {
+    // Traverse obstacles
+    for (const auto uncertainty_obs : uncertainty_obstacles) {
+        loadObstacle(uncertainty_obs);
+    }
 }
 
 
