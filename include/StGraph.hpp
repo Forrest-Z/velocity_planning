@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 08:10:27
+ * @LastEditTime: 2022-09-13 10:29:29
  * @Description: s-t graph
  */
 
@@ -24,15 +24,18 @@
 namespace VelocityPlanning {
 
 template<typename T>
-class  Cube2D {
+class Cube2D {
  public:
+
     Cube2D() = default;
+
     Cube2D(const T& t_start, const T& t_end, const T& s_start, const T& s_end) {
         t_start_ = t_start;
         t_end_ = t_end;
         s_start_ = s_start;
         s_end_ = s_end;
     }
+
     ~Cube2D() = default;
 
     void print() {
@@ -191,8 +194,11 @@ class UncertaintyOccupiedArea {
     UncertaintyOccupiedArea(const std::vector<Eigen::Vector2d>& vertex, const Gaussian2D& gaussian_dis);
 
     ~UncertaintyOccupiedArea();
-    
+
+    Gaussian2D toPointGaussianDis(Eigen::Vector2d& vertice);
+
     std::vector<Eigen::Vector2d> vertex_;
+    // The average value is valid since an area includes many pixel points
     Gaussian2D gaussian_dis_;
 };
 
@@ -217,6 +223,12 @@ class UncertaintyObstacle {
 class UncertaintyStGraph : public StGraph {
  public:
 
+    enum BoundType {
+        UPPER = 0,
+        LOWER = 1,
+        UNKNOWN = 2,
+    };
+
     using StGraph::StGraph;
 
     void loadObstacle(const UncertaintyObstacle& uncertainty_obs);
@@ -227,7 +239,17 @@ class UncertaintyStGraph : public StGraph {
 
     std::vector<UncertaintyCube2D<double>> transformCubesPathToUncertaintyCubesPath(const std::vector<Cube2D<double>>& cubes);
 
+    /**
+     * @description: limit the cube's upper and lower bounds due to the confidence and uncertainty 
+     * @return is successful
+     */    
     bool limitUncertaintyCube(UncertaintyCube2D<double>* uncertainty_cube);
+
+    /**
+     * @description: limit the single bounds for each cube
+     * @return {*}
+     */    
+    bool limitSingleBound(const Gaussian1D& gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound);
 
     std::vector<UncertaintyOccupiedArea> uncertainty_occupied_areas_;
 }; 

@@ -76,6 +76,7 @@
 #include "StandardState.hpp"
 #include "OccupyArea.hpp"
 #include "LookUpTable.hpp"
+#include "Shape.hpp"
 #include "GaussianDistribution.hpp"
 
 

@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 08:11:05
+ * @LastEditTime: 2022-09-13 15:04:50
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -296,6 +296,11 @@ std::vector<std::vector<Eigen::Vector2d>> StGraph::loadObstacle(const DecisionMa
             // // END DEBUG
 
             continue;
+        }
+
+        // Handle the situation where s_end is smaller than s_start
+        if (obstacle.getObstacleVelocity() > 1.0 && fabs(obstacle.getObstacleVelocityDirection() - ego_occupy_area_.getOccupationArea()[ego_vehicle_start_collision_index].rotation_) > M_PI / 2.0) {
+            swap(ego_vehicle_start_collision_index, ego_vehicle_end_collision_index);
         }
 
         // Calculate collision information
@@ -655,6 +660,13 @@ UncertaintyOccupiedArea::UncertaintyOccupiedArea(const std::vector<Eigen::Vector
 
 UncertaintyOccupiedArea::~UncertaintyOccupiedArea() = default;
 
+Gaussian2D UncertaintyOccupiedArea::toPointGaussianDis(Eigen::Vector2d& vertice) {
+    Gaussian2D gaussian_dis;
+    gaussian_dis.ave_values_ = vertice;
+    gaussian_dis.covariance_ = gaussian_dis_.covariance_;
+    return gaussian_dis;
+}
+
 UncertaintyObstacle::UncertaintyObstacle() = default;
 
 UncertaintyObstacle::UncertaintyObstacle(const DecisionMaking::Obstacle& obs, const Gaussian2D& gaussian_dis) {
@@ -739,6 +751,15 @@ std::vector<UncertaintyCube2D<double>> UncertaintyStGraph::transformCubesPathToU
 
 bool UncertaintyStGraph::limitUncertaintyCube(UncertaintyCube2D<double>* uncertainty_cube) {
     
+}
+
+
+bool UncertaintyStGraph::limitSingleBound(const Gaussian1D& gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound) {
+    // Initialize buffer value
+    double buffer_value = 0.0;
+
+    
+
 }
 
 
