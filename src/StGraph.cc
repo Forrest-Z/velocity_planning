@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 15:04:50
+ * @LastEditTime: 2022-09-13 19:16:36
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -654,13 +654,13 @@ void StGraph::print() {
 UncertaintyOccupiedArea::UncertaintyOccupiedArea() = default;
 
 UncertaintyOccupiedArea::UncertaintyOccupiedArea(const std::vector<Eigen::Vector2d>& vertex, const Gaussian2D& gaussian_dis) {
-    vertex_ = vertex;
+    vertex_ = Parallelogram(vertex);
     gaussian_dis_ = gaussian_dis;
 }
 
 UncertaintyOccupiedArea::~UncertaintyOccupiedArea() = default;
 
-Gaussian2D UncertaintyOccupiedArea::toPointGaussianDis(Eigen::Vector2d& vertice) {
+Gaussian2D UncertaintyOccupiedArea::toPointGaussianDis(Eigen::Vector2d& vertice) const {
     Gaussian2D gaussian_dis;
     gaussian_dis.ave_values_ = vertice;
     gaussian_dis.covariance_ = gaussian_dis_.covariance_;
@@ -754,9 +754,26 @@ bool UncertaintyStGraph::limitUncertaintyCube(UncertaintyCube2D<double>* uncerta
 }
 
 
-bool UncertaintyStGraph::limitSingleBound(const Gaussian1D& gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound) {
+bool UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound) {
     // Initialize buffer value
     double buffer_value = 0.0;
+
+    // Traverse all the uncertainty occupied areas
+    for (const auto& cur_uncertainty_occ_area : uncertainty_occupied_areas_) {
+        // Calculate relative positions 
+        double cur_nearest_t_in_line = 0.0;
+        Eigen::Vector2d cur_nearest_vertice_in_polynomial;
+        bool cur_state = ShapeUtils::judgeLineWithPolynomial(line_gaussian_dis.ave_values_(0, 0), t_start, t_end, cur_uncertainty_occ_area.vertex_, &cur_nearest_t_in_line, cur_nearest_vertice_in_polynomial);
+        if (!cur_state) {
+            printf("[UncertaintyStGraph] Error collision!!!\n");
+            assert(false);
+        }
+
+        // Transform the gaussian distribution from an uncertainty area to a specific point
+        Gaussian2D nearest_point_gaussian_dis = cur_uncertainty_occ_area.toPointGaussianDis(cur_nearest_vertice_in_polynomial);
+
+        // 
+    }
 
     
 

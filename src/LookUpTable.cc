@@ -2,10 +2,12 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-04 10:43:39
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-04 15:18:04
+ * @LastEditTime: 2022-09-13 22:27:48
  * @Description: 
  */
 #include "Common.hpp"
+
+namespace LookUpTable {
 
 constexpr int LookUpTable::sampling_number;
 
@@ -42,3 +44,7 @@ double LookUpTable::find(const double& ave_value, const double& variance) {
     return data[variance_index];
 
 }
+
+
+
+} // End of namespace LookUpTable

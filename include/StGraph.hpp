@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 10:29:29
+ * @LastEditTime: 2022-09-13 19:16:27
  * @Description: s-t graph
  */
 
@@ -195,9 +195,9 @@ class UncertaintyOccupiedArea {
 
     ~UncertaintyOccupiedArea();
 
-    Gaussian2D toPointGaussianDis(Eigen::Vector2d& vertice);
+    Gaussian2D toPointGaussianDis(Eigen::Vector2d& vertice) const;
 
-    std::vector<Eigen::Vector2d> vertex_;
+    Parallelogram vertex_;
     // The average value is valid since an area includes many pixel points
     Gaussian2D gaussian_dis_;
 };
@@ -249,7 +249,7 @@ class UncertaintyStGraph : public StGraph {
      * @description: limit the single bounds for each cube
      * @return {*}
      */    
-    bool limitSingleBound(const Gaussian1D& gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound);
+    bool limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound);
 
     std::vector<UncertaintyOccupiedArea> uncertainty_occupied_areas_;
 }; 

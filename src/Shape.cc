@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 15:55:25
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 16:17:55
+ * @LastEditTime: 2022-09-13 19:00:08
  * @Description: description of shapes and its functions
  */
 
@@ -16,30 +16,54 @@ Parallelogram::Parallelogram(const std::vector<Eigen::Vector2d>& vertex) {
 
 Parallelogram::~Parallelogram() = default;
 
-Eigen::Vector2d& Parallelogram::operator[] (int i) {
+const Eigen::Vector2d& Parallelogram::operator[] (int i) const {
     return vertex_[i];
 }
 
-double Parallelogram::maxS() {
+double Parallelogram::maxS() const {
     return std::max({vertex_[0](1), vertex_[1](1), vertex_[2](1), vertex_[3](1)});
 }
 
-double Parallelogram::minS() {
+double Parallelogram::minS() const {
     return std::min({vertex_[0](1), vertex_[1](1), vertex_[2](1), vertex_[3](1)});
 }
 
-std::pair<double, double> Parallelogram::calculateS(const double& t) {
+std::pair<double, double> Parallelogram::calculateS(const double& t) const {
     if (t < minT() || t > maxT()) {
         printf("[Parallelogram] illegal t input!!!\n");
         assert(false);
     }
 
-    
+    // Calculate ratio in the t dimension
+    double t_span = maxT() - minT();
+    double cur_relative_t = t - minT();
+    double ratio = cur_relative_t / t_span;
+
+    // Calculate larger value
+    double larger_value = vertex_[1](1) + ratio * (vertex_[2](1) - vertex_[1](1));
+    // Calculate smaller value
+    double smaller_value = vertex_[0](1) + ratio * (vertex_[3](1) - vertex_[0](1));
+
+    return std::make_pair(larger_value, smaller_value);
 
 }
 
+Parallelogram Parallelogram::calculateTruncatedParallelogram(const double& t_start, const double& t_end) const {
+    // Calculate the two points given t_start
+    std::pair<double, double> t_start_ss = calculateS(t_start);
 
-bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_start, const double& t_end, const std::vector<Eigen::Vector2d>& polynomial_vertex, double* nearest_t_in_line, Eigen::Vector2d& nearest_vertice_in_polynomial) {
+    // Calculate the two points given t_end
+    std::pair<double, double> t_end_ss = calculateS(t_end);
+
+    // Calculate the vertex of the new parallelogram via the specific order
+    std::vector<Eigen::Vector2d> vertex = {{t_start, t_start_ss.second}, {t_start, t_start_ss.first}, {t_end, t_end_ss.first}, {t_end, t_end_ss.second}};
+
+    return Parallelogram(vertex);
+}
+
+
+
+bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_start, const double& t_end, const Parallelogram& polynomial_vertex, double* nearest_t_in_line, Eigen::Vector2d& nearest_vertice_in_polynomial) {
     // Judge whether relative positions in the t dimension
     if (polynomial_vertex[0](0) > t_end) {
         // Polynomial is on the right direction of line 
@@ -72,26 +96,45 @@ bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_s
     } else {
         // Polynomial and line has some overlapped ranges in the t dimension
         // Subdivide relative positions in t dimension
+        Parallelogram valid_parallelogram;
         if (polynomial_vertex[0](0) > t_start && polynomial_vertex[2](0) < t_end) {
-            double max_s = std::max({polynomial_vertex[0](1), polynomial_vertex[1](1), polynomial_vertex[2](1), polynomial_vertex[3](1)});
-            double min_s = std::min({polynomial_vertex[0](1), polynomial_vertex[1](1), polynomial_vertex[2](1), polynomial_vertex[3](1)});
-            if (min_s >= line_s) {
-                // if (fabs)
-            } else if (max_s <= line_s) {
-
-            } else {
-                return false;
-            }
-
+            valid_parallelogram = polynomial_vertex;
         } else if (polynomial_vertex[0](0) < t_start && polynomial_vertex[2](0) > t_end) {
-
+            valid_parallelogram = polynomial_vertex.calculateTruncatedParallelogram(t_start, t_end);
         } else if (polynomial_vertex[0](0) < t_end && polynomial_vertex[2](0) > t_end) {
-
+            valid_parallelogram = polynomial_vertex.calculateTruncatedParallelogram(polynomial_vertex[0](0), t_end);
         } else if (polynomial_vertex[0](0) < t_start && polynomial_vertex[2](0) > t_start) {
-
+            valid_parallelogram = polynomial_vertex.calculateTruncatedParallelogram(t_start, polynomial_vertex[2](0));
         } else {
             printf("[ShapeUtils] Unknwon relative positions situations!!!\n");
             assert(false);
+        }
+
+        // Follow the original parallelogram
+        double max_s = valid_parallelogram.maxS();
+        double min_s = valid_parallelogram.minS();
+        if (min_s >= line_s) {
+            if (fabs(valid_parallelogram[0](1) - line_s) <= fabs(valid_parallelogram[3](1) - line_s)) {
+                *nearest_t_in_line = valid_parallelogram[0](0);
+                nearest_vertice_in_polynomial = valid_parallelogram[0];
+            } else {
+                *nearest_t_in_line = valid_parallelogram[3](0);
+                nearest_vertice_in_polynomial = valid_parallelogram[3];
+            }
+            
+        } else if (max_s <= line_s) {
+            if (fabs(line_s - valid_parallelogram[1](1)) <= fabs(line_s - valid_parallelogram[2](1))) {
+                *nearest_t_in_line = valid_parallelogram[1](0);
+                nearest_vertice_in_polynomial = valid_parallelogram[1];
+            } else {
+                *nearest_t_in_line = valid_parallelogram[2](0);
+                nearest_vertice_in_polynomial = valid_parallelogram[2];
+            }
+
+        } else {
+
+            printf("[ShapeUtils] Error collision!!!\n");
+            return false;
         }
 
     }

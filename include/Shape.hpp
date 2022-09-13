@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 15:52:18
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 16:16:15
+ * @LastEditTime: 2022-09-13 20:04:05
  * @Description: description of parallelogram
  */
 
@@ -12,27 +12,41 @@
 #include <eigen3/Eigen/Geometry>
 #include "Const.hpp"
 
+enum class BoundType {
+    UPPER = 0,
+    LOWER = 1,
+    UNKNOWN = 2,
+};
+
+enum class DimensionType {
+    T = 0,
+    S = 1,
+    UNKNOWN = 2,
+};
+
 class Parallelogram {
  public:
     Parallelogram();
     Parallelogram(const std::vector<Eigen::Vector2d>& vertex);
     ~Parallelogram();
 
-    Eigen::Vector2d& operator[] (int i);
+    const Eigen::Vector2d& operator[] (int i) const;
 
-    double maxS();
+    double maxS() const;
 
-    double minS();
+    double minS() const;
 
-    inline double maxT() {
+    inline double maxT() const {
         return vertex_[0](0);
     }
 
-    inline double minT() {
+    inline double minT() const {
         return vertex_[2](0);
     }
 
-    std::pair<double, double> calculateS(const double& t);
+    std::pair<double, double> calculateS(const double& t) const;
+
+    Parallelogram calculateTruncatedParallelogram(const double& t_start, const double& t_end) const;
 
     std::vector<Eigen::Vector2d> vertex_;
 };
@@ -51,5 +65,5 @@ class ShapeUtils {
      * @param {Vector2d&} nearest_vertice_in_polynomial: the nearest point of the polynomial
      * @return {*} is calculation successful, if there is a collision, the calculation will be failed
      */
-    static bool judgeLineWithPolynomial(const double& line_s, const double& t_start, const double& t_end, const std::vector<Eigen::Vector2d>& polynomial_vertex, double* nearest_t_in_line, Eigen::Vector2d& nearest_vertice_in_polynomial);
+    static bool judgeLineWithPolynomial(const double& line_s, const double& t_start, const double& t_end, const Parallelogram& polynomial_vertex, double* nearest_t_in_line, Eigen::Vector2d& nearest_vertice_in_polynomial);
 };
