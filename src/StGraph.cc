@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-12 19:28:27
+ * @LastEditTime: 2022-09-12 21:02:25
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -648,7 +648,7 @@ void StGraph::print() {
 
 UncertaintyOccupiedArea::UncertaintyOccupiedArea() = default;
 
-UncertaintyOccupiedArea::UncertaintyOccupiedArea(const std::vector<Eigen::Vector2i>& vertex, const Gaussian2D& gaussian_dis) {
+UncertaintyOccupiedArea::UncertaintyOccupiedArea(const std::vector<Eigen::Vector2d>& vertex, const Gaussian2D& gaussian_dis) {
     vertex_ = vertex;
     gaussian_dis_ = gaussian_dis;
 }
@@ -686,6 +686,62 @@ void UncertaintyStGraph::loadObstacles(const std::vector<UncertaintyObstacle>& u
         loadObstacle(uncertainty_obs);
     }
 }
+
+std::vector<std::vector<Cube2D<double>>> UncertaintyStGraph::enhanceSafety(std::vector<std::vector<Cube2D<double>>>& initial_cube_paths) {
+
+    assert(!initial_cube_paths.empty());
+
+    // Initial results
+    int m = initial_cube_paths.size();
+    int n = initial_cube_paths[0].size();
+    std::vector<std::vector<UncertaintyCube2D<double>>> enhanced_safety_uncertainty_cube_paths(m);
+
+    // Add the uncertainty information to cube paths
+    for (int i = 0; i < m; i++) {
+        std::vector<UncertaintyCube2D<double>> uncertainty_cubes_path = transformCubesPathToUncertaintyCubesPath(initial_cube_paths[i]);
+        enhanced_safety_uncertainty_cube_paths[i] = uncertainty_cubes_path;
+    }
+
+    // Execute safety enhancement for each cube
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+
+        }
+    }
+
+
+
+}
+
+std::vector<UncertaintyCube2D<double>> UncertaintyStGraph::transformCubesPathToUncertaintyCubesPath(const std::vector<Cube2D<double>>& cubes) {
+    // Initialize
+    int m = cubes.size();
+    std::vector<UncertaintyCube2D<double>> uncertainty_cubes_path(m, UncertaintyCube2D<double>());
+
+    // Calculate the accumulated gaussian distribution
+    // Note that the covariance of the gaussian distribution is accumulated with the increasing of time stamp
+    for (int i = 0; i < m; i++) {
+        // Calculate the upper and lower bounds' gaussian distribution
+        // TODO: add the calculation logic here
+        Gaussian1D upper_gaussian_dis;
+        Gaussian1D lower_gaussian_dis;
+
+        // Supply data
+        Cube2D<double> cur_cube = cubes[i];
+        UncertaintyCube2D uncertainty_cube = UncertaintyCube2D(cur_cube, upper_gaussian_dis, lower_gaussian_dis);
+
+        uncertainty_cubes_path[i] = uncertainty_cube;
+    }
+
+    return uncertainty_cubes_path;
+    
+}
+
+bool UncertaintyStGraph::limitUncertaintyCube(UncertaintyCube2D<double>* uncertainty_cube) {
+    
+}
+
+
 
 
 

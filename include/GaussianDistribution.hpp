@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-12 16:14:10
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-12 16:28:33
+ * @LastEditTime: 2022-09-12 19:55:02
  * @Description: gaussian distribution
  */
 
@@ -29,5 +29,7 @@ class GaussianND {
     Eigen::Matrix<T, N_DIM, N_DIM> covariances_;
 
 };
+
+using Gaussian1D = GaussianND<double, 1>;
 
 using Gaussian2D = GaussianND<double, 2>;

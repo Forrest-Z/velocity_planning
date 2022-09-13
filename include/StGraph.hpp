@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-12 19:28:11
+ * @LastEditTime: 2022-09-12 20:59:44
  * @Description: s-t graph
  */
 
@@ -43,6 +43,26 @@ class  Cube2D {
     T t_end_;
     T s_start_;
     T s_end_;
+};
+
+template<typename T>
+class UncertaintyCube2D {
+ public:
+    
+    UncertaintyCube2D() = default;
+
+    UncertaintyCube2D(const Cube2D<T>& cube, const Gaussian1D& upper_gaussian_dis, const Gaussian1D& lower_gaussian_dis) {
+        cube_ = cube;
+        upper_gaussian_dis_ = upper_gaussian_dis;
+        lower_gaussian_dis_ = lower_gaussian_dis;
+    }
+
+    ~UncertaintyCube2D() = default;
+
+    Cube2D<T> initial_cube_;
+    Cube2D<T> enhanced_cube_;
+    Gaussian1D upper_gaussian_dis_;
+    Gaussian1D lower_gaussian_dis_; 
 };
 
 class GridMap2D {
@@ -202,6 +222,12 @@ class UncertaintyStGraph : public StGraph {
     void loadObstacle(const UncertaintyObstacle& uncertainty_obs);
 
     void loadObstacles(const std::vector<UncertaintyObstacle>& uncertainty_obstacles);
+
+    std::vector<std::vector<Cube2D<double>>> enhanceSafety(std::vector<std::vector<Cube2D<double>>>& initial_cube_paths);
+
+    std::vector<UncertaintyCube2D<double>> transformCubesPathToUncertaintyCubesPath(const std::vector<Cube2D<double>>& cubes);
+
+    bool limitUncertaintyCube(UncertaintyCube2D<double>* uncertainty_cube);
 
     std::vector<UncertaintyOccupiedArea> uncertainty_occupied_areas_;
 }; 
