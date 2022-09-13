@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-12 21:02:25
+ * @LastEditTime: 2022-09-13 08:11:05
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -728,7 +728,7 @@ std::vector<UncertaintyCube2D<double>> UncertaintyStGraph::transformCubesPathToU
 
         // Supply data
         Cube2D<double> cur_cube = cubes[i];
-        UncertaintyCube2D uncertainty_cube = UncertaintyCube2D(cur_cube, upper_gaussian_dis, lower_gaussian_dis);
+        UncertaintyCube2D<double> uncertainty_cube = UncertaintyCube2D<double>(cur_cube, upper_gaussian_dis, lower_gaussian_dis);
 
         uncertainty_cubes_path[i] = uncertainty_cube;
     }

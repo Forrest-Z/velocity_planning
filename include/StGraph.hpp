@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-12 20:59:44
+ * @LastEditTime: 2022-09-13 08:10:27
  * @Description: s-t graph
  */
 
@@ -52,7 +52,7 @@ class UncertaintyCube2D {
     UncertaintyCube2D() = default;
 
     UncertaintyCube2D(const Cube2D<T>& cube, const Gaussian1D& upper_gaussian_dis, const Gaussian1D& lower_gaussian_dis) {
-        cube_ = cube;
+        initial_cube_ = cube;
         upper_gaussian_dis_ = upper_gaussian_dis;
         lower_gaussian_dis_ = lower_gaussian_dis;
     }
