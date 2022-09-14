@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 19:16:36
+ * @LastEditTime: 2022-09-14 10:31:30
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -772,7 +772,8 @@ bool UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
         // Transform the gaussian distribution from an uncertainty area to a specific point
         Gaussian2D nearest_point_gaussian_dis = cur_uncertainty_occ_area.toPointGaussianDis(cur_nearest_vertice_in_polynomial);
 
-        // 
+        // Calulate location probability given a dimension and its range
+        double dis_prob = GaussianUtils::calculateDistributionProbability(nearest_point_gaussian_dis, DimensionType::T, t_start, t_end);
     }
 
     

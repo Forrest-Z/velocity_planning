@@ -2,12 +2,24 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-04 10:43:39
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-14 10:13:00
+ * @LastEditTime: 2022-09-14 15:41:04
  * @Description: 
  */
 #include "Common.hpp"
 
 namespace LookUpTable {
+
+double ErrorFunction::forwardCalculate(const double& val) {
+    double tmp = val;
+    double res = (2.0 / sqrt(M_PI)) * (tmp > 0.0 ? 1.0 : -1.0) * sqrt(1.0 - exp(-1.0 * pow(tmp, 2.0))) * ((sqrt(M_PI) / 2.0) + (31.0 / 200.0) * exp(-1.0 * pow(tmp, 2.0)) - (341.0 / 8000.0) * exp(-2.0 * pow(tmp, 2.0))); 
+    return res;
+}
+
+double ErrorFunction::inverseCalculate(const double& val) {
+    double tmp = val;
+    double res = (sqrt(M_PI) / 2.0) * (tmp + (M_PI / 12.0) * pow(tmp, 3.0) + (7.0 * pow(M_PI, 2.0) / 480.0) * pow(tmp, 5.0) + (127.0 * pow(M_PI, 3.0) / 40320.0) * pow(tmp, 7.0) + (4369.0 * pow(M_PI, 4.0) / 5806080.0) * pow(tmp, 9.0) + (34807.0 * pow(M_PI, 5.0) / 182476800.0) * pow(tmp, 11.0));
+    return res;
+}
 
 constexpr int GaussianAverageValue::variance_sampling_number;
 
@@ -42,7 +54,7 @@ void GaussianAverageValue::initialize() {
         for (int j = 0; j < variance_sampling_number; j++) {
             double cur_variance = variances[j];
             double tmp = 1.0 - 2.0 * delta;
-            double c = sqrt(2.0 * cur_variance) * (sqrt(M_PI) / 2.0) * (tmp + (M_PI / 12.0) * pow(tmp, 3.0) + (7.0 * pow(M_PI, 2.0) / 480.0) * pow(tmp, 5.0) + (127.0 * pow(M_PI, 3.0) / 40320.0) * pow(tmp, 7.0) + (4369.0 * pow(M_PI, 4.0) / 5806080.0) * pow(tmp, 9.0) + (34807.0 * pow(M_PI, 5.0) / 182476800.0) * pow(tmp, 11.0));
+            double c = sqrt(2.0 * cur_variance) * ErrorFunction::inverseCalculate(tmp);
             data[i][j] = c;
         }
     }
@@ -59,6 +71,14 @@ double GaussianAverageValue::find(const double& variance, const double& confiden
 
     return data[confidence_index][variance_index];
 
+}
+
+double GaussianAverageValue::calculate(const double& variance, const double& confidence) {
+    double delta = 1.0 - confidence;
+    assert(delta <= 0.5);
+    double tmp = 1.0 - 2.0 * delta;
+    double res = sqrt(2.0 * variance) * ErrorFunction::inverseCalculate(tmp);
+    return res;
 }
 
 constexpr int GaussianIntegral::variance_sampling_number;
@@ -88,9 +108,9 @@ void GaussianIntegral::initialize() {
     for (int i = 0; i < value_sampling_number; i++) {
         double cur_value = values[i];
         for (int j = 0; j < variance_sampling_number; j++) {
-            double cur_variance = variances[i];
+            double cur_variance = variances[j];
             double tmp = cur_value / sqrt(2.0 * cur_variance);
-            double erf_tmp = (2.0 / sqrt(M_PI)) * (tmp > 0.0 ? 1.0 : -1.0) * sqrt(1.0 - exp(-1.0 * pow(tmp, 2.0))) * ((sqrt(M_PI) / 2.0) + (31.0 / 200.0) * exp(-1.0 * pow(tmp, 2.0)) - (341.0 / 8000.0) * exp(-2.0 * pow(tmp, 2.0))); 
+            double erf_tmp = ErrorFunction::forwardCalculate(tmp);
             double res = 0.5 * (1.0 + erf_tmp);
 
             data[i][j] = res;
@@ -108,6 +128,13 @@ double GaussianIntegral::find(const double& variance, const double& value) {
 
     return data[value][variance_index];
 
+}
+
+double GaussianIntegral::calculate(const double& variance, const double& value) {
+    double tmp = value / sqrt(2.0 * variance);
+    double erf_tmp = ErrorFunction::forwardCalculate(tmp);
+    double res = 0.5 * (1.0 + erf_tmp);
+    return res;
 }
 
 } // End of namespace LookUpTable

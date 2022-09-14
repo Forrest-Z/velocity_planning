@@ -2,13 +2,22 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-04 08:34:54
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-14 09:33:45
+ * @LastEditTime: 2022-09-14 15:37:27
  * @Description: look up table for gaussian integral
  */
 #include <vector>
 #include "Const.hpp"
 
 namespace LookUpTable {
+
+
+class ErrorFunction {
+ public:
+    
+    static double forwardCalculate(const double& val);
+
+    static double inverseCalculate(const double& val);
+};
 
 
 
@@ -30,6 +39,8 @@ class GaussianAverageValue {
     static void initialize();
 
     static double find(const double& variance, const double& confidence);
+
+    static double calculate(const double& variance, const double& confidence);
 
     static std::vector<double> variances;
 
@@ -58,6 +69,8 @@ class GaussianIntegral {
     static void initialize();
 
     static double find(const double& variance, const double& value);
+
+    static double calculate(const double& variance, const double& value);
 
     static std::vector<double> variances;
 
