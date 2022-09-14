@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-12 16:14:10
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 20:20:41
+ * @LastEditTime: 2022-09-14 08:12:27
  * @Description: gaussian distribution
  */
 
@@ -35,8 +35,8 @@ class GaussianND {
     // The correctness of this function is only verified in the situation from 2D to 1D
     GaussianND<T, 1> edgeDistribution(int dimension_index) const {
         assert(dimension_index >= 0 && dimension_index < N_DIM);
-        Eigen::Matrix<T, 1, 1> ave_values = {ave_values_(dimension_index, 0)};
-        Eigen::Matrix<T, 1, 1> covariance = {covariance_(dimension_index, dimension_index)};
+        Eigen::Matrix<T, 1, 1> ave_values{ave_values_(dimension_index, 0)};
+        Eigen::Matrix<T, 1, 1> covariance{covariance_(dimension_index, dimension_index)};
         
         return GaussianND<T, 1>(ave_values, covariance);
 

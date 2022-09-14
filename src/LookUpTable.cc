@@ -2,49 +2,112 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-04 10:43:39
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 22:27:48
+ * @LastEditTime: 2022-09-14 10:13:00
  * @Description: 
  */
 #include "Common.hpp"
 
 namespace LookUpTable {
 
-constexpr int LookUpTable::sampling_number;
+constexpr int GaussianAverageValue::variance_sampling_number;
 
-std::vector<double> LookUpTable::variances(200, -1);
+constexpr int GaussianAverageValue::confidence_sampling_number;
 
-std::vector<double> LookUpTable::data(200, -1);
+constexpr double GaussianAverageValue::variance_start_value;
 
-void LookUpTable::initialize(const double& confidence) {
-    // Calculate delta
-    double delta = 1.0 - confidence;
+constexpr double GaussianAverageValue::variance_end_value;
 
-    assert(delta < 0.5);
+constexpr double GaussianAverageValue::confidence_start_value;
 
-    // Initialize average values and variances
-    // TODO: adjust the upper bound and lower bound
-    variances = Tools::linspace(0.0, 50.0, sampling_number);
+constexpr double GaussianAverageValue::confidence_end_value;
 
-    // Supply data using inverse erf approximation
-    for (int j = 0; j < sampling_number; j++) {
-        double cur_variance = variances[j];
-        double tmp = 1.0 - 2.0 * delta;
-        double c = sqrt(2.0 * cur_variance) * (sqrt(M_PI) / 2.0) * (tmp + (M_PI / 12.0) * pow(tmp, 3.0) + (7.0 * pow(M_PI, 2.0) / 480.0) * pow(tmp, 5.0) + (127.0 * pow(M_PI, 3.0) / 40320.0) * pow(tmp, 7.0) + (4369.0 * pow(M_PI, 4.0) / 5806080.0) * pow(tmp, 9.0) + (34807.0 * pow(M_PI, 5.0) / 182476800.0) * pow(tmp, 11.0));
-        data[j] = c;
+std::vector<double> GaussianAverageValue::variances(variance_sampling_number, -1.0);
+
+std::vector<double> GaussianAverageValue::confidences(confidence_sampling_number, -1.0);
+
+std::vector<std::vector<double>> GaussianAverageValue::data(confidence_sampling_number, std::vector<double>(variance_sampling_number, -1.0));
+
+void GaussianAverageValue::initialize() {
+    // Generate sampling values
+    variances = Tools::linspace(variance_start_value, variance_end_value, variance_sampling_number);
+    confidences = Tools::linspace(confidence_start_value, confidence_end_value, confidence_sampling_number);
+
+    // Supply data
+    for (int i = 0; i < confidence_sampling_number; i++) {
+        double cur_confidence = confidences[i];
+        // Calculate delta
+        double delta = 1.0 - cur_confidence;
+        assert(delta <= 0.5);
+
+        for (int j = 0; j < variance_sampling_number; j++) {
+            double cur_variance = variances[j];
+            double tmp = 1.0 - 2.0 * delta;
+            double c = sqrt(2.0 * cur_variance) * (sqrt(M_PI) / 2.0) * (tmp + (M_PI / 12.0) * pow(tmp, 3.0) + (7.0 * pow(M_PI, 2.0) / 480.0) * pow(tmp, 5.0) + (127.0 * pow(M_PI, 3.0) / 40320.0) * pow(tmp, 7.0) + (4369.0 * pow(M_PI, 4.0) / 5806080.0) * pow(tmp, 9.0) + (34807.0 * pow(M_PI, 5.0) / 182476800.0) * pow(tmp, 11.0));
+            data[i][j] = c;
+        }
     }
     
 }
 
-double LookUpTable::find(const double& ave_value, const double& variance) {
-    // Get corresponding index of variance
+double GaussianAverageValue::find(const double& variance, const double& confidence) {
+    // Get corresponding index
     int variance_index = std::lower_bound(variances.begin(), variances.end(), variance) - variances.begin();
+    int confidence_index = std::lower_bound(confidences.begin(), confidences.end(), confidence) - confidences.begin();
 
-    assert(variance_index < sampling_number && variance_index >= 0);
+    assert(variance_index < variance_sampling_number && variance_index >= 0);
+    assert(confidence_index < confidence_sampling_number && confidence_index >= 0);
 
-    return data[variance_index];
+    return data[confidence_index][variance_index];
 
 }
 
+constexpr int GaussianIntegral::variance_sampling_number;
 
+constexpr int GaussianIntegral::value_sampling_number;
+
+constexpr double GaussianIntegral::variance_start_value;
+
+constexpr double GaussianIntegral::variance_end_value;
+
+constexpr double GaussianIntegral::value_start_value;
+
+constexpr double GaussianIntegral::value_end_value;
+
+std::vector<double> GaussianIntegral::variances(variance_sampling_number, -1.0);
+
+std::vector<double> GaussianIntegral::values(value_sampling_number, -1.0);
+
+std::vector<std::vector<double>> GaussianIntegral::data(value_sampling_number, std::vector<double>(variance_sampling_number, -1.0));
+
+void GaussianIntegral::initialize() {
+    // Generate sampling values
+    variances = Tools::linspace(variance_start_value, variance_end_value, variance_sampling_number);
+    values = Tools::linspace(value_start_value, value_end_value, value_sampling_number);
+
+    // Supply data 
+    for (int i = 0; i < value_sampling_number; i++) {
+        double cur_value = values[i];
+        for (int j = 0; j < variance_sampling_number; j++) {
+            double cur_variance = variances[i];
+            double tmp = cur_value / sqrt(2.0 * cur_variance);
+            double erf_tmp = (2.0 / sqrt(M_PI)) * (tmp > 0.0 ? 1.0 : -1.0) * sqrt(1.0 - exp(-1.0 * pow(tmp, 2.0))) * ((sqrt(M_PI) / 2.0) + (31.0 / 200.0) * exp(-1.0 * pow(tmp, 2.0)) - (341.0 / 8000.0) * exp(-2.0 * pow(tmp, 2.0))); 
+            double res = 0.5 * (1.0 + erf_tmp);
+
+            data[i][j] = res;
+        }
+    }
+}
+
+double GaussianIntegral::find(const double& variance, const double& value) {
+    // Get corresponding index
+    int variance_index = std::lower_bound(variances.begin(), variances.end(), variance) - variances.begin();
+    int value_index = std::lower_bound(values.begin(), values.end(), value) - values.begin();
+
+    assert(variance_index < variance_sampling_number && variance_index >= 0);
+    assert(value_index < value_sampling_number && value_index >= 0);
+
+    return data[value][variance_index];
+
+}
 
 } // End of namespace LookUpTable

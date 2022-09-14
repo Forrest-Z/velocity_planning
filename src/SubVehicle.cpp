@@ -475,17 +475,6 @@ void DecisionMaking::SubVehicle::getHistoryCurve(const path_planning_msgs::Motio
 
 // 规划和决策线程,20hz
 void DecisionMaking::SubVehicle::motionPlanningThread() {
-
-    // Initialize look up table
-    LookUpTable::initialize(0.8);
-
-    // // DEBUG
-    // for (int i = 0; i < LookUpTable::sampling_number; i++) {
-    //     std::cout << LookUpTable::data[i] << ", ";
-    // }
-    // std::cout << std::endl;
-    // // END DEBUG
-
     ros::Rate loop_rate(MOTION_PLANNING_FREQUENCY);
     // 进程等待直到数据准备完成
     while (ros::ok()) {

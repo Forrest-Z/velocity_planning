@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-04 08:34:54
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 22:26:38
+ * @LastEditTime: 2022-09-14 09:33:45
  * @Description: look up table for gaussian integral
  */
 #include <vector>
@@ -12,23 +12,48 @@ namespace LookUpTable {
 
 
 
-class LookUpTable {
+class GaussianAverageValue {
  public:
+ 
+    static constexpr int variance_sampling_number{200};
 
-    static void initialize(const double& confidence);
+    static constexpr int confidence_sampling_number{20};
 
-    static double find(const double& ave_value, const double& variance);
+    static constexpr double variance_start_value{0.0};
 
-    static constexpr int sampling_number{200};
+    static constexpr double variance_end_value{50.0};
 
-    static std::vector<double> data;
+    static constexpr double confidence_start_value{0.5};
+
+    static constexpr double confidence_end_value{1.0};
+
+    static void initialize();
+
+    static double find(const double& variance, const double& confidence);
 
     static std::vector<double> variances;
+
+    static std::vector<double> confidences;
+
+    static std::vector<std::vector<double>> data;
+
 
 };
 
 class GaussianIntegral {
  public:
+
+    static constexpr int variance_sampling_number{200};
+
+    static constexpr int value_sampling_number{200};
+
+    static constexpr double variance_start_value{0.0};
+
+    static constexpr double variance_end_value{50.0};
+
+    static constexpr double value_start_value{-50.0};
+
+    static constexpr double value_end_value{50.0};
     
     static void initialize();
 
