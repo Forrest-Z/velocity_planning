@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-14 20:09:19
+ * @LastEditTime: 2022-09-14 22:32:16
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -707,6 +707,7 @@ std::vector<std::vector<Cube2D<double>>> UncertaintyStGraph::enhanceSafety(std::
     int m = initial_cube_paths.size();
     int n = initial_cube_paths[0].size();
     std::vector<std::vector<UncertaintyCube2D<double>>> enhanced_safety_uncertainty_cube_paths(m);
+    std::vector<std::vector<Cube2D<double>>> executed_cube_paths(m, std::vector<Cube2D<double>>(n, Cube2D<double>()));
 
     // Add the uncertainty information to cube paths
     for (int i = 0; i < m; i++) {
@@ -717,9 +718,14 @@ std::vector<std::vector<Cube2D<double>>> UncertaintyStGraph::enhanceSafety(std::
     // Execute safety enhancement for each cube
     for (int i = 0; i < m; i++) {
         for (int j = 0; j < n; j++) {
-
+            limitUncertaintyCube(&enhanced_safety_uncertainty_cube_paths[i][j]);
+            executed_cube_paths[i][j] = enhanced_safety_uncertainty_cube_paths[i][j].enhanced_cube_;
         }
     }
+
+    return executed_cube_paths;
+
+
 
 
 
@@ -749,12 +755,25 @@ std::vector<UncertaintyCube2D<double>> UncertaintyStGraph::transformCubesPathToU
     
 }
 
-bool UncertaintyStGraph::limitUncertaintyCube(UncertaintyCube2D<double>* uncertainty_cube) {
+void UncertaintyStGraph::limitUncertaintyCube(UncertaintyCube2D<double>* uncertainty_cube) {
+    double t_start = uncertainty_cube->initial_cube_.t_start_;
+    double t_end = uncertainty_cube->initial_cube_.t_end_;
     
+    // Calculate the limited bounds
+    double limited_upper_bound;
+    double limited_lower_bound;
+    limitSingleBound(uncertainty_cube->upper_gaussian_dis_, t_start, t_end, BoundType::UPPER, &limited_upper_bound);
+    limitSingleBound(uncertainty_cube->lower_gaussian_dis_, t_start, t_end, BoundType::LOWER, &limited_lower_bound);
+
+    // Update uncertainty cube
+    uncertainty_cube->upper_gaussian_dis_.ave_values_(0, 0) = limited_upper_bound;
+    uncertainty_cube->lower_gaussian_dis_.ave_values_(0, 0) = limited_lower_bound;
+    uncertainty_cube->enhanced_cube_.s_end_ = limited_upper_bound;
+    uncertainty_cube->enhanced_cube_.s_start_ = limited_lower_bound;
+        
 }
 
-
-bool UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound) {
+void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound) {
     // Initialize buffer value
     double buffer_value = 0.0;
 
@@ -817,6 +836,7 @@ bool UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
 
 
     }
+
 
     
 

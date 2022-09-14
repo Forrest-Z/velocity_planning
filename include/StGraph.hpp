@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-14 19:58:28
+ * @LastEditTime: 2022-09-14 22:29:23
  * @Description: s-t graph
  */
 
@@ -56,6 +56,7 @@ class UncertaintyCube2D {
 
     UncertaintyCube2D(const Cube2D<T>& cube, const Gaussian1D& upper_gaussian_dis, const Gaussian1D& lower_gaussian_dis) {
         initial_cube_ = cube;
+        enhanced_cube_ = cube;
         upper_gaussian_dis_ = upper_gaussian_dis;
         lower_gaussian_dis_ = lower_gaussian_dis;
     }
@@ -243,13 +244,13 @@ class UncertaintyStGraph : public StGraph {
      * @description: limit the cube's upper and lower bounds due to the confidence and uncertainty 
      * @return is successful
      */    
-    bool limitUncertaintyCube(UncertaintyCube2D<double>* uncertainty_cube);
+    void limitUncertaintyCube(UncertaintyCube2D<double>* uncertainty_cube);
 
     /**
      * @description: limit the single bounds for each cube
      * @return {*}
      */    
-    bool limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound);
+    void limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound);
 
     std::vector<UncertaintyOccupiedArea> uncertainty_occupied_areas_;
 
