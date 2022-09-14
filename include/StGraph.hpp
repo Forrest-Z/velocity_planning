@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 19:16:27
+ * @LastEditTime: 2022-09-14 19:58:28
  * @Description: s-t graph
  */
 
@@ -252,6 +252,8 @@ class UncertaintyStGraph : public StGraph {
     bool limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound);
 
     std::vector<UncertaintyOccupiedArea> uncertainty_occupied_areas_;
+
+    const double original_confidence_{0.8};
 }; 
 
 

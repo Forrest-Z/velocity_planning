@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-14 10:31:30
+ * @LastEditTime: 2022-09-14 20:09:19
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -774,6 +774,48 @@ bool UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
 
         // Calulate location probability given a dimension and its range
         double dis_prob = GaussianUtils::calculateDistributionProbability(nearest_point_gaussian_dis, DimensionType::T, t_start, t_end);
+        double current_required_confidence = original_confidence_ * dis_prob;
+
+        // Get the two possible distribution of the 2D distribution
+        Gaussian1D start_gaussian_dis;
+        Gaussian1D end_gaussian_dis;
+        GaussianUtils::transformGaussian2DTo1D(nearest_point_gaussian_dis, DimensionType::S, t_start, t_end, &start_gaussian_dis, &end_gaussian_dis);
+
+        // Calculate difference gaussian distribution due to the type of bound
+        Gaussian1D start_diff_gaussian_dis;
+        Gaussian1D end_diff_gaussian_dis;
+        if (bound_type == BoundType::UPPER) {
+            start_diff_gaussian_dis = start_gaussian_dis - line_gaussian_dis;
+            end_diff_gaussian_dis = end_gaussian_dis - line_gaussian_dis;
+        } else if (bound_type == BoundType::LOWER) {
+            start_diff_gaussian_dis = line_gaussian_dis - start_gaussian_dis;
+            end_diff_gaussian_dis = line_gaussian_dis - end_gaussian_dis;
+        } else {
+            printf("[UncertaintyStGraph] unknown bound type!!!\n");
+            assert(false);
+        }
+
+        if (start_diff_gaussian_dis.ave_values_(0, 0) < 0.0 || end_diff_gaussian_dis.ave_values_(0, 0) < 0.0) {
+            // TODO: check this logic, it is likely that there is a bug
+            printf("[UncertaintyStGraph] emergence situation!!!\n");
+        }
+        double start_diff_gaussian_res_buffer = LookUpTable::GaussianAverageValue::calculate(start_diff_gaussian_dis.covariance_(0, 0), current_required_confidence);
+        double end_diff_gaussian_res_buffer = LookUpTable::GaussianAverageValue::calculate(end_diff_gaussian_dis.covariance_(0, 0), current_required_confidence);
+
+        buffer_value = std::max({buffer_value, start_diff_gaussian_res_buffer, end_diff_gaussian_res_buffer});
+
+        // Calculate the limited cube bound's position
+        if (bound_type == BoundType::UPPER) {
+            *limited_bound = line_gaussian_dis.ave_values_(0, 0) - buffer_value;
+        } else if (bound_type == BoundType::LOWER) {
+            *limited_bound = line_gaussian_dis.ave_values_(0, 0) + buffer_value;
+        } else {
+            printf("[UncertaintyStGraph] unknown bound type!!!\n");
+            assert(false);
+        }
+
+
+
     }
 
     

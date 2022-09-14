@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-12 16:14:10
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-14 17:29:09
+ * @LastEditTime: 2022-09-14 20:07:10
  * @Description: gaussian distribution
  */
 
@@ -31,6 +31,18 @@ class GaussianND {
     }
 
     ~GaussianND() = default;
+
+    GaussianND<T, N_DIM> operator- (const GaussianND<T, N_DIM>& gaussian_dis) const {
+        Eigen::Matrix<T, N_DIM, 1> res_ave_values = ave_values_ - gaussian_dis.ave_values_;
+        Eigen::Matrix<T, N_DIM, N_DIM> res_covariance = covariance_ + gaussian_dis.ave_values_;
+        return GaussianND<T, N_DIM>(res_ave_values, res_covariance);
+    }
+
+    GaussianND<T, N_DIM> operator+ (const GaussianND<T, N_DIM>& gaussian_dis) {
+        Eigen::Matrix<T, N_DIM, 1> res_ave_values = ave_values_ + gaussian_dis.ave_values_;
+        Eigen::Matrix<T, N_DIM, N_DIM> res_covariance = covariance_ + gaussian_dis.ave_values_;
+        return GaussianND<T, N_DIM>(res_ave_values, res_covariance);
+    }
 
     // The correctness of this function is only verified in the situation from 2D to 1D
     GaussianND<T, 1> edgeDistribution(int dimension_index) const {
@@ -83,7 +95,7 @@ class GaussianUtils {
      * @param {double&} end_value
      * @return {*}
      */
-    static void transformGaussian2DTo1D(const Gaussian2D& input_gaussian_dis_2d, const DimensionType& target_dimension_type, const double& start_value, const double& end_value, Gaussian1D* candi_dis_start, Gaussian1D* candi_dis_end);
+    static void transformGaussian2DTo1D(const Gaussian2D& input_gaussian_dis_2d, DimensionType target_dimension_type, const double& start_value, const double& end_value, Gaussian1D* candi_dis_start, Gaussian1D* candi_dis_end);
     
 };
 

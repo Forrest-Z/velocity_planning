@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 09:29:45
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-14 19:12:40
+ * @LastEditTime: 2022-09-14 19:29:53
  * @Description: gaussian distribution
  */
 
@@ -30,7 +30,7 @@ double GaussianUtils::calculateDistributionProbability(const Gaussian2D& gaussia
     return res_prob;
 }
 
-void transformGaussian2DTo1D(const Gaussian2D& input_gaussian_dis_2d, const DimensionType& target_dimension_type, const double& start_value, const double& end_value, Gaussian1D* candi_dis_start, Gaussian1D* candi_dis_end) {
+void GaussianUtils::transformGaussian2DTo1D(const Gaussian2D& input_gaussian_dis_2d, DimensionType target_dimension_type, const double& start_value, const double& end_value, Gaussian1D* candi_dis_start, Gaussian1D* candi_dis_end) {
     // Get variance
     double variance = input_gaussian_dis_2d.covariance_(static_cast<int>(target_dimension_type), static_cast<int>(target_dimension_type));
 
