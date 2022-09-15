@@ -149,7 +149,7 @@ class Obstacle {
         return this->history_position_set_;
     }
 
- private:
+//  private:
     size_t id_;  // 障碍物的唯一标识符
     PathPlanningUtilities::Point2f position_;  // 障碍物中心在世界坐标系下的位置信息
     double width_;  // 障碍物矩形边框的宽度

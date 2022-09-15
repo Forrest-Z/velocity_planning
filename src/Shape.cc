@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 15:55:25
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 19:00:08
+ * @LastEditTime: 2022-09-15 11:36:17
  * @Description: description of shapes and its functions
  */
 
@@ -141,4 +141,17 @@ bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_s
 
     return true;
 }
+
+Eigen::Matrix2d CoordinateUtils::getRotationMatrix(const double& theta) {
+    Eigen::Matrix2d rotation_matrix;
+    rotation_matrix << cos(theta), sin(theta), -sin(theta), cos(theta);
+    return rotation_matrix;
+}
+
+Eigen::Matrix2d CoordinateUtils::getScaleMatrix(const double& scale_1, const double& scale_2) {
+    Eigen::Matrix2d scale_matrix;
+    scale_matrix << scale_1, 0.0, scale_2, 0.0;
+    return scale_matrix;
+}
+
 

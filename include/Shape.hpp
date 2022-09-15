@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 15:52:18
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-13 20:04:05
+ * @LastEditTime: 2022-09-15 11:33:12
  * @Description: description of parallelogram
  */
 
@@ -66,4 +66,11 @@ class ShapeUtils {
      * @return {*} is calculation successful, if there is a collision, the calculation will be failed
      */
     static bool judgeLineWithPolynomial(const double& line_s, const double& t_start, const double& t_end, const Parallelogram& polynomial_vertex, double* nearest_t_in_line, Eigen::Vector2d& nearest_vertice_in_polynomial);
+};
+
+class CoordinateUtils {
+ public:
+    static Eigen::Matrix2d getRotationMatrix(const double& theta);
+
+    static Eigen::Matrix2d getScaleMatrix(const double& scale_1, const double& scale_2);
 };

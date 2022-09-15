@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-12 16:14:10
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-14 20:07:10
+ * @LastEditTime: 2022-09-15 11:22:32
  * @Description: gaussian distribution
  */
 
@@ -89,13 +89,16 @@ class GaussianUtils {
     /**
      * @description: transform a 2d gaussian distribution to 1d given a range, the difference between this with an edge *               defintion is that in this process, a range is defined instead of from negative infinity to positive *               infinity
      * @note this method is an approximate method, only when the relative coefficient is zero, the result is precise
-     * @param {Gaussian2D&} input_gaussian_dis_2d
-     * @param {DimensionType&} target_dimension_type
-     * @param {double&} start_value
-     * @param {double&} end_value
+     * @param {Gaussian2D&} input_gaussian_dis_2d input gaussian distribution
+     * @param {DimensionType&} target_dimension_type dimension type which is aimed to be transformed to
+     * @param {double&} start_value start value in other dimension
+     * @param {double&} end_value end value in other dimension
      * @return {*}
      */
     static void transformGaussian2DTo1D(const Gaussian2D& input_gaussian_dis_2d, DimensionType target_dimension_type, const double& start_value, const double& end_value, Gaussian1D* candi_dis_start, Gaussian1D* candi_dis_end);
-    
+
+    static Gaussian2D transformGaussianDis(const Gaussian2D& input_gaussian_dis, const Eigen::Matrix2d& transform_matrix, bool ignore_position=true);
+
+    static Eigen::Matrix2d getRotationMatrix(const double& theta);
 };
 

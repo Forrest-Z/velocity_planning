@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-14 22:32:16
+ * @LastEditTime: 2022-09-15 14:07:20
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -252,7 +252,7 @@ Cube2D<double> StGraph::gridCubeToRealCube(const Cube2D<int>& grid_cube) {
 
 
 
-std::vector<std::vector<Eigen::Vector2d>> StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
+std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> StGraph::loadObstacle(const DecisionMaking::Obstacle& obstacle) {
     // if (obstacle.getObstacleVelocity() < 0.1) {
     //     // Ignore static obstacles, they will be processed by other logic
     //     // TODO: complete this logic
@@ -267,7 +267,7 @@ std::vector<std::vector<Eigen::Vector2d>> StGraph::loadObstacle(const DecisionMa
     // std::cout << "Obstacle trajectory number: " << obstacle.getPredictedTrajectoryNumber() << std::endl;
     // // END DEBUG
 
-    std::vector<std::vector<Eigen::Vector2d>> real_vertex;
+    std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> real_vertex_and_interaction_theta;
 
     for (int i = 0; i < obstacle.getPredictedTrajectoryNumber(); i++) {
         // Construct occupied area
@@ -303,6 +303,10 @@ std::vector<std::vector<Eigen::Vector2d>> StGraph::loadObstacle(const DecisionMa
             swap(ego_vehicle_start_collision_index, ego_vehicle_end_collision_index);
         }
 
+        // Get the interaction point's theta (for transformation coordination)
+        double ego_vehicle_interaction_theta = ego_occupy_area_.getOccupationArea()[ego_vehicle_start_collision_index].rotation_;
+        double obstacle_interaction_theta = cur_obs_occupy_area.getOccupationArea()[cur_obs_start_collision_index].rotation_;
+
         // Calculate collision information
         double t_start = (ego_vehicle_start_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
         double t_end = (ego_vehicle_end_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
@@ -333,7 +337,7 @@ std::vector<std::vector<Eigen::Vector2d>> StGraph::loadObstacle(const DecisionMa
         std::vector<Eigen::Vector2d> real_vertice = {{t_start, s_start}, {t_start, s_start + projected_length}, {t_end, s_end}, {t_end, s_end - projected_length}};
 
         // Record
-        real_vertex.emplace_back(real_vertice);
+        real_vertex_and_interaction_theta.emplace_back(std::make_tuple(real_vertice, ego_vehicle_interaction_theta, obstacle_interaction_theta));
 
         // // DEBUG
         // for (int i = 0; i < 4; i++) {
@@ -355,18 +359,15 @@ std::vector<std::vector<Eigen::Vector2d>> StGraph::loadObstacle(const DecisionMa
 
     }
 
-    return real_vertex;
+    return real_vertex_and_interaction_theta;
 }
 
-std::vector<std::vector<std::vector<Eigen::Vector2d>>> StGraph::loadObstacles(const std::vector<DecisionMaking::Obstacle>& obstacles) {
+void StGraph::loadObstacles(const std::vector<DecisionMaking::Obstacle>& obstacles) {
     // Record all the vertex to match the corresponding uncertainty
-    std::vector<std::vector<std::vector<Eigen::Vector2d>>> obstalces_real_vertex;
     for (auto const& obs : obstacles) {
-        std::vector<std::vector<Eigen::Vector2d>> obs_real_vertex = loadObstacle(obs);
-        obstalces_real_vertex.emplace_back(obs_real_vertex);
+        loadObstacle(obs);
     }
 
-    return obstalces_real_vertex;
 }
 
 
@@ -678,15 +679,41 @@ UncertaintyObstacle::~UncertaintyObstacle() = default;
 
 void UncertaintyStGraph::loadObstacle(const UncertaintyObstacle& uncertainty_obs) {
     // Get the specific occupied area
-    std::vector<std::vector<Eigen::Vector2d>> obs_traj_vertex = StGraph::loadObstacle(uncertainty_obs.obs_);
+    std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> obs_traj_vertex_and_interaction_theta = StGraph::loadObstacle(uncertainty_obs.obs_);
 
     // Transform uncertainty gaussian distribution
-    // TODO: add this logic, trasform from world to s-t, include two steps: transform from world to frenet, then from frenet to s-t
-    Gaussian2D obs_gaussian_dis;
+    // Noth that in this context, we only calculate and transform the covariance sicne the average values are represented using the vertex
+    const double covariance_coeff = 0.3;
 
     // Record
-    for (const auto cur_traj_obs_vertex : obs_traj_vertex) {
-        UncertaintyOccupiedArea uncer_occ_area = UncertaintyOccupiedArea(cur_traj_obs_vertex, obs_gaussian_dis);
+    for (const auto& cur_traj_obs_vertex_and_interaction_theta : obs_traj_vertex_and_interaction_theta) {
+        // Parse data
+        std::vector<Eigen::Vector2d> cur_traj_obs_vertex = std::get<0>(cur_traj_obs_vertex_and_interaction_theta);
+        double ego_vehicle_interaction_theta = std::get<1>(cur_traj_obs_vertex_and_interaction_theta);
+        double obstacle_interaction_theta = std::get<2>(cur_traj_obs_vertex_and_interaction_theta);
+
+        // Get corresponding t
+        double corresponding_t = (cur_traj_obs_vertex[0](0) + cur_traj_obs_vertex[2](0)) / 2.0;
+
+        // World variance is given by sensors
+        // TODO: add a logic to get the initial logic for surrounding vehicles
+        Eigen::Matrix<double, 2, 2> world_covariance;
+        world_covariance << pow(corresponding_t, 2.0) * covariance_coeff, 0.0, pow(corresponding_t, 2.0) * covariance_coeff, 0.0;
+        Gaussian2D obs_world_gaussian_dis = Gaussian2D(world_covariance);
+
+        // Transform world to fake frenet
+        // Get the rotation matrix
+        Eigen::Matrix2d rotation_matrix = CoordinateUtils::getRotationMatrix(ego_vehicle_interaction_theta);
+        Gaussian2D obs_frenet_gaussian_dis = GaussianUtils::transformGaussianDis(obs_world_gaussian_dis, rotation_matrix);
+
+        // Transform fake frenet to st
+        // TODO: check this logic
+        double diff_angle = obstacle_interaction_theta - ego_vehicle_interaction_theta;
+        Eigen::Matrix2d scale_matrix = CoordinateUtils::getScaleMatrix(1.0 / (uncertainty_obs.obs_.velocity_ * sin(diff_angle)), 1.0);
+        Gaussian2D obs_st_gaussian_dis = GaussianUtils::transformGaussianDis(obs_frenet_gaussian_dis, scale_matrix);
+
+
+        UncertaintyOccupiedArea uncer_occ_area = UncertaintyOccupiedArea(cur_traj_obs_vertex, obs_st_gaussian_dis);
         uncertainty_occupied_areas_.emplace_back(uncer_occ_area);
     }
 
@@ -738,14 +765,21 @@ std::vector<UncertaintyCube2D<double>> UncertaintyStGraph::transformCubesPathToU
 
     // Calculate the accumulated gaussian distribution
     // Note that the covariance of the gaussian distribution is accumulated with the increasing of time stamp
+    // TODO: refine this parameter
+    const double variance_coeff = 0.15;
+
     for (int i = 0; i < m; i++) {
+        Cube2D<double> cur_cube = cubes[i];
+
         // Calculate the upper and lower bounds' gaussian distribution
-        // TODO: add the calculation logic here
-        Gaussian1D upper_gaussian_dis;
-        Gaussian1D lower_gaussian_dis;
+        Eigen::Matrix<double, 1, 1> upper_bound_ave_matrix{cur_cube.s_end_};
+        Eigen::Matrix<double, 1, 1> lower_bound_ave_matrix{cur_cube.s_start_};
+        Eigen::Matrix<double, 1, 1> upper_bound_variance_matrix{variance_coeff * pow(cur_cube.t_end_, 2.0)};
+        Eigen::Matrix<double, 1, 1> lower_bound_variance_matrix{variance_coeff * pow(cur_cube.t_end_, 2.0)};
+        Gaussian1D upper_gaussian_dis = Gaussian1D(upper_bound_ave_matrix, upper_bound_variance_matrix);
+        Gaussian1D lower_gaussian_dis = Gaussian1D(lower_bound_ave_matrix, lower_bound_variance_matrix);
 
         // Supply data
-        Cube2D<double> cur_cube = cubes[i];
         UncertaintyCube2D<double> uncertainty_cube = UncertaintyCube2D<double>(cur_cube, upper_gaussian_dis, lower_gaussian_dis);
 
         uncertainty_cubes_path[i] = uncertainty_cube;

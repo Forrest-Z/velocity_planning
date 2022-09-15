@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 09:29:45
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-14 19:29:53
+ * @LastEditTime: 2022-09-15 11:28:39
  * @Description: gaussian distribution
  */
 
@@ -57,3 +57,20 @@ void GaussianUtils::transformGaussian2DTo1D(const Gaussian2D& input_gaussian_dis
     candi_dis_end->covariance_ = covariance_matrix;
     
 }
+
+Gaussian2D GaussianUtils::transformGaussianDis(const Gaussian2D& input_gaussian_dis, const Eigen::Matrix2d& transform_matrix, bool ignore_position) {
+    Gaussian2D output_gaussian_dis;
+    
+    // Calculate the covariance 
+    Eigen::Matrix2d transformed_covariance_matrix = transform_matrix * input_gaussian_dis.covariance_ * transform_matrix.transpose();
+    output_gaussian_dis.covariance_ = transformed_covariance_matrix;
+
+    if (!ignore_position) {
+        // TODO: complete the transformation of position here
+        assert(false);
+    }
+
+    return output_gaussian_dis;
+}
+
+

@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-14 22:29:23
+ * @LastEditTime: 2022-09-15 13:57:08
  * @Description: s-t graph
  */
 
@@ -134,7 +134,6 @@ class StGraph {
      * @param {Curve&} path 
      * @param {Param&} param
      * @param {double&} current_velocity
-     * TODO: the hypothesis is that the current velocity of the vehicle is with the same orientation of the first point of the path 
      */    
     StGraph(const PathPlanningUtilities::Curve& path, const Param& param, const double& current_velocity);
    
@@ -148,9 +147,9 @@ class StGraph {
 
     std::vector<Eigen::Vector2d> gridPossToRealValues(const std::vector<Eigen::Vector2i>& grid_positions);
 
-    std::vector<std::vector<Eigen::Vector2d>> loadObstacle(const DecisionMaking::Obstacle& obstacle);
+    std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> loadObstacle(const DecisionMaking::Obstacle& obstacle);
 
-    std::vector<std::vector<std::vector<Eigen::Vector2d>>> loadObstacles(const std::vector<DecisionMaking::Obstacle>& obstacles);
+    void loadObstacles(const std::vector<DecisionMaking::Obstacle>& obstacles);
 
     void loadAccelerationLimitation();
 
