@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-15 14:07:20
+ * @LastEditTime: 2022-09-15 16:08:59
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -668,18 +668,37 @@ Gaussian2D UncertaintyOccupiedArea::toPointGaussianDis(Eigen::Vector2d& vertice)
     return gaussian_dis;
 }
 
-UncertaintyObstacle::UncertaintyObstacle() = default;
+bool UncertaintyStGraph::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths, std::vector<std::pair<double, double>>* s_range) {
+    // ~Stage I: add obstacles
+    loadUncertaintyObstacles(obstacles);
 
-UncertaintyObstacle::UncertaintyObstacle(const DecisionMaking::Obstacle& obs, const Gaussian2D& gaussian_dis) {
-    obs_ = obs;
-    gaussian_dis_ = gaussian_dis;
+    // ~Stage: II: add acc limitation
+    loadAccelerationLimitation();
+
+    // ~Stage II: generate cubes
+    std::vector<std::vector<Cube2D<double>>> cubes;
+    std::vector<std::pair<double, double>> last_s_range;
+    bool is_generated_success = generateCubes(&cubes, &last_s_range);
+    if (!is_generated_success) {
+        return false;
+    }
+
+    // ~Stage III: generate cube paths
+    std::vector<std::vector<Cube2D<double>>> connected_cube_paths;
+    bool is_connected_success = connectCubes(cubes, &connected_cube_paths);
+    if (!is_connected_success) {
+        return false;
+    }
+
+    *cube_paths = connected_cube_paths;
+    *s_range = last_s_range;
+    return true;
+
 }
 
-UncertaintyObstacle::~UncertaintyObstacle() = default;
-
-void UncertaintyStGraph::loadObstacle(const UncertaintyObstacle& uncertainty_obs) {
+void UncertaintyStGraph::loadUncertaintyObstacle(const DecisionMaking::Obstacle& uncertainty_obs) {
     // Get the specific occupied area
-    std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> obs_traj_vertex_and_interaction_theta = StGraph::loadObstacle(uncertainty_obs.obs_);
+    std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> obs_traj_vertex_and_interaction_theta = StGraph::loadObstacle(uncertainty_obs);
 
     // Transform uncertainty gaussian distribution
     // Noth that in this context, we only calculate and transform the covariance sicne the average values are represented using the vertex
@@ -709,7 +728,7 @@ void UncertaintyStGraph::loadObstacle(const UncertaintyObstacle& uncertainty_obs
         // Transform fake frenet to st
         // TODO: check this logic
         double diff_angle = obstacle_interaction_theta - ego_vehicle_interaction_theta;
-        Eigen::Matrix2d scale_matrix = CoordinateUtils::getScaleMatrix(1.0 / (uncertainty_obs.obs_.velocity_ * sin(diff_angle)), 1.0);
+        Eigen::Matrix2d scale_matrix = CoordinateUtils::getScaleMatrix(1.0 / (uncertainty_obs.velocity_ * sin(diff_angle)), 1.0);
         Gaussian2D obs_st_gaussian_dis = GaussianUtils::transformGaussianDis(obs_frenet_gaussian_dis, scale_matrix);
 
 
@@ -719,14 +738,14 @@ void UncertaintyStGraph::loadObstacle(const UncertaintyObstacle& uncertainty_obs
 
 }
 
-void UncertaintyStGraph::loadObstacles(const std::vector<UncertaintyObstacle>& uncertainty_obstacles) {
+void UncertaintyStGraph::loadUncertaintyObstacles(const std::vector<DecisionMaking::Obstacle>& uncertainty_obstacles) {
     // Traverse obstacles
     for (const auto uncertainty_obs : uncertainty_obstacles) {
-        loadObstacle(uncertainty_obs);
+        loadUncertaintyObstacle(uncertainty_obs);
     }
 }
 
-std::vector<std::vector<Cube2D<double>>> UncertaintyStGraph::enhanceSafety(std::vector<std::vector<Cube2D<double>>>& initial_cube_paths) {
+bool UncertaintyStGraph::enhanceSafety(const std::vector<std::vector<Cube2D<double>>>& initial_cube_paths, std::vector<std::vector<Cube2D<double>>>* enhanced_cube_paths) {
 
     assert(!initial_cube_paths.empty());
 
@@ -750,12 +769,9 @@ std::vector<std::vector<Cube2D<double>>> UncertaintyStGraph::enhanceSafety(std::
         }
     }
 
-    return executed_cube_paths;
+    *enhanced_cube_paths = executed_cube_paths;
 
-
-
-
-
+    return true;
 }
 
 std::vector<UncertaintyCube2D<double>> UncertaintyStGraph::transformCubesPathToUncertaintyCubesPath(const std::vector<Cube2D<double>>& cubes) {
@@ -807,7 +823,7 @@ void UncertaintyStGraph::limitUncertaintyCube(UncertaintyCube2D<double>* uncerta
         
 }
 
-void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound) {
+void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound) {    
     // Initialize buffer value
     double buffer_value = 0.0;
 

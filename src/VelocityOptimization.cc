@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-04 15:24:05
+ * @LastEditTime: 2022-09-15 16:07:00
  * @Description: velocity optimization.
  */
 
@@ -1271,7 +1271,7 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
 
             start_state_ = {0.0, planning_state_->v_[lower_index], planning_state_->a_[lower_index]};
             // Construct s-t graph
-            st_graph_ = new StGraph(velocity_planning_curve, st_graph_param, planning_state_->v_[lower_index]);
+            st_graph_ = new UncertaintyStGraph(velocity_planning_curve, st_graph_param, planning_state_->v_[lower_index]);
         }
     } 
 
@@ -1297,7 +1297,7 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
 
         start_state_ = {0.0, vehicle_movement_state.velocity_, vehicle_movement_state.acceleration_};
         // Construct s-t graph
-        st_graph_ = new StGraph(velocity_planning_curve, st_graph_param, vehicle_movement_state.velocity_);
+        st_graph_ = new UncertaintyStGraph(velocity_planning_curve, st_graph_param, vehicle_movement_state.velocity_);
     }
 
     // // DEBUG
@@ -1343,13 +1343,22 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
         return false;
     }
 
+    // ~Stage II: safety enhancement
+    std::vector<std::vector<Cube2D<double>>> enhanced_cube_paths;
+    bool enhancement_success = st_graph_->enhanceSafety(cube_paths, &enhanced_cube_paths);
+    if (!enhancement_success) {
+        planning_state_->setSafety(false);
+        planning_state_->velocity_profile_generation_state_ = false;
+        std::cout << "State name: " << planning_state_->getStateName() << " is not safe due to safety enhancement failure." << std::endl;
+        return false;
+    }
 
 
     // // DEBUG
     // st_graph_->visualization();
     // // END DEBUG
 
-    // ~Stage II: generate s-t parameters
+    // ~Stage III: generate s-t parameters
     std::vector<double> s;
     std::vector<double> t;
 
@@ -1371,7 +1380,7 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
         return false;
     }
 
-    // ~Stage III: generate s-t profile
+    // ~Stage IV: generate s-t profile
     bezier_curve_traj_generator_ = new BezierPiecewiseCurve(s, t);
     std::tuple<std::vector<double>, std::vector<double>, std::vector<double>, std::vector<double>> profile = bezier_curve_traj_generator_->generateTraj();
 
@@ -1398,7 +1407,7 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     std::cout << std::endl;
     // END DEBUG
 
-    // ~Stage IV: supply s-t profile to the standard state
+    // ~Stage V: supply s-t profile to the standard state
     planning_state_->loadStProfile(std::get<0>(profile), std::get<1>(profile), std::get<2>(profile));
     planning_state_->velocity_profile_generation_state_ = true;
 

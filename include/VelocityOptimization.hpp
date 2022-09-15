@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:08
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-08-18 14:24:59
+ * @LastEditTime: 2022-09-15 15:34:32
  * @Description: velocity optimization.
  */
 
@@ -178,7 +178,7 @@ class VelocityPlanner {
 
     bool runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles);
 
-    StGraph* st_graph_{nullptr};
+    UncertaintyStGraph* st_graph_{nullptr};
     VelocityOptimizer* velocity_optimizer_{nullptr};
     BezierPiecewiseCurve* bezier_curve_traj_generator_{nullptr};
     DecisionMaking::StandardState* planning_state_{nullptr};

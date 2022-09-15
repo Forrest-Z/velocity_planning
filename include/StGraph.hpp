@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-15 13:57:08
+ * @LastEditTime: 2022-09-15 16:05:50
  * @Description: s-t graph
  */
 
@@ -202,22 +202,6 @@ class UncertaintyOccupiedArea {
     Gaussian2D gaussian_dis_;
 };
 
-// Describe an obstacle with an uncertainty (calculating from prediction)
-class UncertaintyObstacle {
- public:
-
-    UncertaintyObstacle();
-
-    UncertaintyObstacle(const DecisionMaking::Obstacle& obs, const Gaussian2D& gaussian_dis);
-
-    ~UncertaintyObstacle();
-
-    DecisionMaking::Obstacle obs_;
-    Gaussian2D gaussian_dis_;
-
-
-    
-};
 
 // Occpuied area is represented with a uncertainty occupied area instead of a set of bool values in the cv::mat
 class UncertaintyStGraph : public StGraph {
@@ -231,11 +215,13 @@ class UncertaintyStGraph : public StGraph {
 
     using StGraph::StGraph;
 
-    void loadObstacle(const UncertaintyObstacle& uncertainty_obs);
+    bool runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths, std::vector<std::pair<double, double>>* s_range);
 
-    void loadObstacles(const std::vector<UncertaintyObstacle>& uncertainty_obstacles);
+    void loadUncertaintyObstacle(const DecisionMaking::Obstacle& uncertainty_obs);
 
-    std::vector<std::vector<Cube2D<double>>> enhanceSafety(std::vector<std::vector<Cube2D<double>>>& initial_cube_paths);
+    void loadUncertaintyObstacles(const std::vector<DecisionMaking::Obstacle>& uncertainty_obstacles);
+
+    bool enhanceSafety(const std::vector<std::vector<Cube2D<double>>>& initial_cube_paths, std::vector<std::vector<Cube2D<double>>>* enhanced_cube_paths);
 
     std::vector<UncertaintyCube2D<double>> transformCubesPathToUncertaintyCubesPath(const std::vector<Cube2D<double>>& cubes);
 
