@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 09:29:45
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-15 11:28:39
+ * @LastEditTime: 2022-09-16 18:24:50
  * @Description: gaussian distribution
  */
 
@@ -21,11 +21,11 @@ double GaussianUtils::calculateDistributionProbability(const Gaussian2D& gaussia
     double variance = edge_dis.covariance_(0, 0);
 
     // Search distribution probability
-    double end_prob = LookUpTable::GaussianIntegral::calculate(variance, end_value);
-    double start_prob = LookUpTable::GaussianIntegral::calculate(variance, start_value);
+    double end_prob = LookUpTable::GaussianIntegral::calculate(variance, transformed_end_value);
+    double start_prob = LookUpTable::GaussianIntegral::calculate(variance, transformed_start_value);
     double res_prob = end_prob - start_prob;
 
-    assert(res_prob > 0.0);
+    assert(res_prob >= 0.0);
 
     return res_prob;
 }
@@ -36,9 +36,9 @@ void GaussianUtils::transformGaussian2DTo1D(const Gaussian2D& input_gaussian_dis
 
     DimensionType other_dimension_type = DimensionType::UNKNOWN;
     if (target_dimension_type == DimensionType::S) {
-        other_dimension_type == DimensionType::T;
+        other_dimension_type = DimensionType::T;
     } else {
-        other_dimension_type == DimensionType::S;
+        other_dimension_type = DimensionType::S;
     }
 
     // Get two average values for the start value and end point

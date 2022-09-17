@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-04 10:43:39
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-14 15:41:04
+ * @LastEditTime: 2022-09-16 09:45:07
  * @Description: 
  */
 #include "Common.hpp"
@@ -74,8 +74,10 @@ double GaussianAverageValue::find(const double& variance, const double& confiden
 }
 
 double GaussianAverageValue::calculate(const double& variance, const double& confidence) {
+    if (confidence <= 0.5) {
+        return 0.0;
+    }
     double delta = 1.0 - confidence;
-    assert(delta <= 0.5);
     double tmp = 1.0 - 2.0 * delta;
     double res = sqrt(2.0 * variance) * ErrorFunction::inverseCalculate(tmp);
     return res;

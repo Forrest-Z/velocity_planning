@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-15 16:08:59
+ * @LastEditTime: 2022-09-16 17:00:23
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -30,22 +30,28 @@ void GridMap2D::print() {
 }
 
 void GridMap2D::visualization() {
-    cv::imshow("Grid map", mat_);
-    cv::waitKey(0);
+    cv::Mat shown_mat;
+    cv::flip(mat_, shown_mat, 0);
+    cv::imshow("Grid map", shown_mat);
+    cv::waitKey(100);
 }
 
 void GridMap2D::visualization(const std::vector<Cube2D<int>>& cubes) {
     addCubesVisualization(cubes);
-    cv::imshow("Grid map", mat_);
-    cv::waitKey();
+    cv::Mat shown_mat;
+    cv::flip(mat_, shown_mat, 0);
+    cv::imshow("Grid map", shown_mat);
+    cv::waitKey(100);
 }
 
 void GridMap2D::visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths) {
     for (auto const& cubes : cube_paths) {
         addCubesVisualization(cubes);
     }
-    cv::imshow("Grid map", mat_);
-    cv::waitKey();
+    cv::Mat shown_mat;
+    cv::flip(mat_, shown_mat, 0);
+    cv::imshow("Grid map", shown_mat);
+    cv::waitKey(100);
 }
 
 void GridMap2D::fillAccBannedArea(const std::vector<Eigen::Vector2i>& vertice) {
@@ -308,8 +314,8 @@ std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> StGraph::l
         double obstacle_interaction_theta = cur_obs_occupy_area.getOccupationArea()[cur_obs_start_collision_index].rotation_;
 
         // Calculate collision information
-        double t_start = (ego_vehicle_start_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
-        double t_end = (ego_vehicle_end_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
+        double t_start = (cur_obs_start_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
+        double t_end = (cur_obs_end_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
         double s_start = ego_vehicle_start_collision_index * LANE_GAP_DISTANCE;
         double s_end = ego_vehicle_end_collision_index * LANE_GAP_DISTANCE;
 
@@ -339,20 +345,21 @@ std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> StGraph::l
         // Record
         real_vertex_and_interaction_theta.emplace_back(std::make_tuple(real_vertice, ego_vehicle_interaction_theta, obstacle_interaction_theta));
 
-        // // DEBUG
-        // for (int i = 0; i < 4; i++) {
-        //     std::cout << real_vertice[i] << std::endl;
-        // }
-        // // END DEBUG
+        // DEBUG
+        for (int i = 0; i < 4; i++) {
+            std::cout << "Vertice number: " << i << std::endl;
+            std::cout << real_vertice[i] << std::endl;
+        }
+        // END DEBUG
 
         // Convert
         std::vector<Eigen::Vector2i> grid_positions = realValuesToGridPoss(real_vertice);
 
-        // DEBUG
-        for (int i = 0; i < 4; i++) {
-            std::cout << grid_positions[i] << std::endl;
-        }
-        // END DEBUG
+        // // DEBUG
+        // for (int i = 0; i < 4; i++) {
+        //     std::cout << grid_positions[i] << std::endl;
+        // }
+        // // END DEBUG
 
         // Picture the banned area to grid map
         grid_map_2D_->fillObstacleBannedArea(grid_positions);
@@ -418,6 +425,7 @@ void StGraph::loadAccelerationLimitation() {
 
     // Supply the vertex to fill the polygon
     lower_boundary_values.push_back({param_.t_max, 0.0});
+    upper_boundary_values.push_back({param_.t_max, param_.s_max});
     upper_boundary_values.push_back({0.0, param_.s_max});
 
     // Convert to grid positions
@@ -554,6 +562,10 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
     // std::cout << "dfs search complete" <<std::endl; 
     // // END DEBUG
 
+    // DEBUG
+    std::cout << "+++++++++++++++++++++++++++++++++ Initial cubes information +++++++++++++++++++++++++++++++++" << std::endl;
+    // END DEBUG
+
     if (connected_cubes_.size() > 0) {
         *output_cubes = connected_cubes_;
 
@@ -565,7 +577,7 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
                 connected_cubes_[i][j].print();
             }
         }
-        // visualization(calculated_grid_cubes_columns_);
+        visualization(calculated_grid_cubes_columns_);
         // END DEBUG
 
 
@@ -668,7 +680,7 @@ Gaussian2D UncertaintyOccupiedArea::toPointGaussianDis(Eigen::Vector2d& vertice)
     return gaussian_dis;
 }
 
-bool UncertaintyStGraph::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths, std::vector<std::pair<double, double>>* s_range) {
+bool UncertaintyStGraph::generateInitialCubePath(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths, std::vector<std::pair<double, double>>* s_range) {
     // ~Stage I: add obstacles
     loadUncertaintyObstacles(obstacles);
 
@@ -770,6 +782,19 @@ bool UncertaintyStGraph::enhanceSafety(const std::vector<std::vector<Cube2D<doub
     }
 
     *enhanced_cube_paths = executed_cube_paths;
+
+    // DEBUG
+    std::cout << "+++++++++++++++++++++++++++++++++ Enhanced safety cubes information +++++++++++++++++++++++++++++++++" << std::endl;
+    for (int i = 0; i < executed_cube_paths.size(); i++) {
+        std::cout << "path " << i << std::endl;
+        for (int j = 0; j < executed_cube_paths[i].size(); j++) {
+            std::cout << "cube " << j << std::endl;
+            executed_cube_paths[i][j].print();
+        }
+    }
+    // END DEBUG
+
+
 
     return true;
 }
@@ -873,21 +898,26 @@ void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
 
         buffer_value = std::max({buffer_value, start_diff_gaussian_res_buffer, end_diff_gaussian_res_buffer});
 
-        // Calculate the limited cube bound's position
-        if (bound_type == BoundType::UPPER) {
-            *limited_bound = line_gaussian_dis.ave_values_(0, 0) - buffer_value;
-        } else if (bound_type == BoundType::LOWER) {
-            *limited_bound = line_gaussian_dis.ave_values_(0, 0) + buffer_value;
-        } else {
-            printf("[UncertaintyStGraph] unknown bound type!!!\n");
-            assert(false);
-        }
-
+        // DEBUG
+        std::cout << "Required confidence: " << current_required_confidence << std::endl;
+        std::cout << "Start diff gaussian buffer: " << start_diff_gaussian_res_buffer << std::endl;
+        std::cout << "End diff gaussian buffer: " << end_diff_gaussian_res_buffer << std::endl;
+        // END DEBUG
 
 
     }
 
 
+
+    // Calculate the limited cube bound's position
+    if (bound_type == BoundType::UPPER) {
+        *limited_bound = line_gaussian_dis.ave_values_(0, 0) - buffer_value;
+    } else if (bound_type == BoundType::LOWER) {
+        *limited_bound = line_gaussian_dis.ave_values_(0, 0) + buffer_value;
+    } else {
+        printf("[UncertaintyStGraph] unknown bound type!!!\n");
+        assert(false);
+    }
     
 
 }

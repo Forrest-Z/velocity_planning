@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-15 16:07:00
+ * @LastEditTime: 2022-09-16 16:55:12
  * @Description: velocity optimization.
  */
 
@@ -1335,7 +1335,7 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
         }
     }
 
-    bool graph_success = st_graph_->runOnce(valid_obstacles, &cube_paths, &last_s_range);
+    bool graph_success = st_graph_->generateInitialCubePath(valid_obstacles, &cube_paths, &last_s_range);
     if (!graph_success) {
         planning_state_->setSafety(false);
         planning_state_->velocity_profile_generation_state_ = false;

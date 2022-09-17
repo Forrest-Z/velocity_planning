@@ -310,12 +310,12 @@ void DecisionMaking::SubVehicle::chooseStates() {
         if (this->choosed_state_.getStateName() == StateNames::TURN_LEFT) {
             dbw_mkz_msgs::TurnSignalCmd turn_signal_cmd;
             turn_signal_cmd.cmd.value = dbw_mkz_msgs::TurnSignal::LEFT;
-            this->turn_signal_pub_.publish(turn_signal_cmd);
+            // this->turn_signal_pub_.publish(turn_signal_cmd);
             LOG(INFO) << "through left turn light";
         }else if (this->choosed_state_.getStateName() == StateNames::TURN_RIGHT) {
             dbw_mkz_msgs::TurnSignalCmd turn_signal_cmd;
             turn_signal_cmd.cmd.value = dbw_mkz_msgs::TurnSignal::RIGHT;
-            this->turn_signal_pub_.publish(turn_signal_cmd);
+            // this->turn_signal_pub_.publish(turn_signal_cmd);
             LOG(INFO) << "through right turn light";
         } else if (this->choosed_state_.getStateName() == StateNames::FORWARD) {
             // if (this->guidance_type_ == vec_map_cpp_msgs::GetGuidedCurvesResponse::CHANGE_LEFT) {
