@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-15 16:05:50
+ * @LastEditTime: 2022-09-19 15:00:53
  * @Description: s-t graph
  */
 
@@ -93,19 +93,19 @@ class GridMap2D {
 
     ValType getOccupiedState(const int& grid_t_start, const int& grid_t_end, const int& s);
 
-    void addCubeVisualization(const Cube2D<int>& grid_cube);
+    void addCubeVisualization(const Cube2D<int>& grid_cube, cv::Mat& copied_mat);
 
-    void addCubesVisualization(const std::vector<Cube2D<int>>& grid_cubes);
+    void addCubesVisualization(const std::vector<Cube2D<int>>& grid_cubes, cv::Mat& copied_mat);
 
     // DEBUG
 
     void print();
 
-    void visualization();
+    void visualization(const std::string& name);
 
-    void visualization(const std::vector<Cube2D<int>>& cubes);
+    void visualization(const std::vector<Cube2D<int>>& cubes, const std::string& name);
 
-    void visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths);
+    void visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths, const std::string& name);
     // END DEBUG
 
     cv::Mat mat_;
@@ -159,6 +159,12 @@ class StGraph {
 
     Cube2D<double> gridCubeToRealCube(const Cube2D<int>& grid_cube);
 
+    std::vector<std::vector<Cube2D<int>>> realCubesPathsToGridCubesPaths(const std::vector<std::vector<Cube2D<double>>>& real_cubes_paths);
+
+    std::vector<Cube2D<int>> realCubesToGridCubes(const std::vector<Cube2D<double>>& real_cubes);
+
+    Cube2D<int> realCubeToGridCube(const Cube2D<double>& real_cube);
+
     bool connectCubes(const std::vector<std::vector<Cube2D<double>>>& input_cubes, std::vector<std::vector<Cube2D<double>>>* output_cubes);
 
     bool isCubesConnected(const Cube2D<double>& cube_1, const Cube2D<double>& cube_2);
@@ -167,9 +173,9 @@ class StGraph {
 
     bool runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths, std::vector<std::pair<double, double>>* s_range);
 
-    void visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths);
+    void visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths, const std::string& name);
 
-    void visualization();
+    void visualization(const std::string& name);
 
     void print();
 
@@ -213,9 +219,15 @@ class UncertaintyStGraph : public StGraph {
         UNKNOWN = 2,
     };
 
+    struct UncertaintyParam {
+        double obstacle_related_variance_coeff = 0.0001;
+        double ego_vehicle_related_variance_coeff = 0.15;
+        double required_confidence = 0.9;
+    };
+
     using StGraph::StGraph;
 
-    bool runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths, std::vector<std::pair<double, double>>* s_range);
+    bool generateInitialCubePath(const std::vector<DecisionMaking::Obstacle>& obstacles, std::vector<std::vector<Cube2D<double>>>* cube_paths, std::vector<std::pair<double, double>>* s_range);
 
     void loadUncertaintyObstacle(const DecisionMaking::Obstacle& uncertainty_obs);
 
@@ -239,7 +251,8 @@ class UncertaintyStGraph : public StGraph {
 
     std::vector<UncertaintyOccupiedArea> uncertainty_occupied_areas_;
 
-    const double original_confidence_{0.8};
+    UncertaintyParam uncertainty_param_;
+
 }; 
 
 

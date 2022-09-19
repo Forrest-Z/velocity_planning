@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 15:52:18
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-15 11:33:12
+ * @LastEditTime: 2022-09-19 15:29:41
  * @Description: description of parallelogram
  */
 
@@ -11,6 +11,13 @@
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
 #include "Const.hpp"
+
+enum class RelativePositionType {
+    ABOVE = 0,
+    BELOW = 1,
+    IGNORED = 2,
+    UNKNOWN = 3,
+};
 
 enum class BoundType {
     UPPER = 0,
@@ -37,11 +44,11 @@ class Parallelogram {
     double minS() const;
 
     inline double maxT() const {
-        return vertex_[0](0);
+        return vertex_[2](0);
     }
 
     inline double minT() const {
-        return vertex_[2](0);
+        return vertex_[1](0);
     }
 
     std::pair<double, double> calculateS(const double& t) const;
@@ -65,7 +72,7 @@ class ShapeUtils {
      * @param {Vector2d&} nearest_vertice_in_polynomial: the nearest point of the polynomial
      * @return {*} is calculation successful, if there is a collision, the calculation will be failed
      */
-    static bool judgeLineWithPolynomial(const double& line_s, const double& t_start, const double& t_end, const Parallelogram& polynomial_vertex, double* nearest_t_in_line, Eigen::Vector2d& nearest_vertice_in_polynomial);
+    static bool judgeLineWithPolynomial(const double& line_s, const double& t_start, const double& t_end, const Parallelogram& polynomial_vertex, const double& tolerance, double* nearest_t_in_line, Eigen::Vector2d& nearest_vertice_in_polynomial, RelativePositionType* relative_pos);
 };
 
 class CoordinateUtils {

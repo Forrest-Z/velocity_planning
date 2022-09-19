@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-16 17:00:23
+ * @LastEditTime: 2022-09-19 17:16:20
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -29,28 +29,30 @@ void GridMap2D::print() {
     std::cout << mat_ << std::endl;
 }
 
-void GridMap2D::visualization() {
+void GridMap2D::visualization(const std::string& name) {
     cv::Mat shown_mat;
     cv::flip(mat_, shown_mat, 0);
-    cv::imshow("Grid map", shown_mat);
+    cv::imshow(name, shown_mat);
     cv::waitKey(100);
 }
 
-void GridMap2D::visualization(const std::vector<Cube2D<int>>& cubes) {
-    addCubesVisualization(cubes);
+void GridMap2D::visualization(const std::vector<Cube2D<int>>& cubes, const std::string& name) {
+    cv::Mat drawn_mat = mat_.clone();
+    addCubesVisualization(cubes, drawn_mat);
     cv::Mat shown_mat;
-    cv::flip(mat_, shown_mat, 0);
-    cv::imshow("Grid map", shown_mat);
+    cv::flip(drawn_mat, shown_mat, 0);
+    cv::imshow(name, shown_mat);
     cv::waitKey(100);
 }
 
-void GridMap2D::visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths) {
+void GridMap2D::visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths, const std::string& name) {
+    cv::Mat drawn_mat = mat_.clone();
     for (auto const& cubes : cube_paths) {
-        addCubesVisualization(cubes);
+        addCubesVisualization(cubes, drawn_mat);
     }
     cv::Mat shown_mat;
-    cv::flip(mat_, shown_mat, 0);
-    cv::imshow("Grid map", shown_mat);
+    cv::flip(drawn_mat, shown_mat, 0);
+    cv::imshow(name, shown_mat);
     cv::waitKey(100);
 }
 
@@ -163,17 +165,17 @@ GridMap2D::ValType GridMap2D::getOccupiedState(const int& grid_t_start, const in
 
 }
 
-void GridMap2D::addCubeVisualization(const Cube2D<int>& grid_cube) {
+void GridMap2D::addCubeVisualization(const Cube2D<int>& grid_cube, cv::Mat& copied_mat) {
     std::vector<cv::Point> contour = {cv::Point(grid_cube.t_start_, grid_cube.s_start_), cv::Point(grid_cube.t_start_, grid_cube.s_end_), cv::Point(grid_cube.t_end_, grid_cube.s_end_), cv::Point(grid_cube.t_end_, grid_cube.s_start_)};
     
     std::vector<std::vector<cv::Point>> contours;
     contours.emplace_back(contour);
-    cv::polylines(mat_, contours, true, cv::Scalar(ValType::CUBE_BOUNDARY), 2);
+    cv::polylines(copied_mat, contours, true, cv::Scalar(ValType::CUBE_BOUNDARY), 2);
 }
 
-void GridMap2D::addCubesVisualization(const std::vector<Cube2D<int>>& grid_cubes) {
+void GridMap2D::addCubesVisualization(const std::vector<Cube2D<int>>& grid_cubes, cv::Mat& copied_mat) {
     for (const auto& cube : grid_cubes) {
-        addCubeVisualization(cube);
+        addCubeVisualization(cube, copied_mat);
     }
 }
 
@@ -254,6 +256,31 @@ Cube2D<double> StGraph::gridCubeToRealCube(const Cube2D<int>& grid_cube) {
     double s_end_real = grid_cube.s_end_ * param_.s_resolution;
     Cube2D<double> cube_real = Cube2D<double>(t_start_real, t_end_real, s_start_real, s_end_real);
     return cube_real;
+}
+
+std::vector<std::vector<Cube2D<int>>> StGraph::realCubesPathsToGridCubesPaths(const std::vector<std::vector<Cube2D<double>>>& real_cubes_paths) {
+    std::vector<std::vector<Cube2D<int>>> cubes_paths;
+    for (int i = 0; i < real_cubes_paths.size(); i++) {
+        cubes_paths.emplace_back(realCubesToGridCubes(real_cubes_paths[i]));
+    }
+    return cubes_paths;
+}
+
+std::vector<Cube2D<int>> StGraph::realCubesToGridCubes(const std::vector<Cube2D<double>>& real_cubes) {
+    std::vector<Cube2D<int>> cubes;
+    for (int i = 0; i < real_cubes.size(); i++) {
+        cubes.emplace_back(realCubeToGridCube(real_cubes[i]));
+    }
+    return cubes;
+}
+
+Cube2D<int> StGraph::realCubeToGridCube(const Cube2D<double>& real_cube) {
+    int t_start_grid = real_cube.t_start_ / param_.t_resolution;
+    int t_end_grid = real_cube.t_end_ / param_.t_resolution;
+    int s_start_grid = real_cube.s_start_ / param_.s_resolution;
+    int s_end_grid = real_cube.s_end_ / param_.s_resolution;
+    Cube2D<int> cube_grid = Cube2D<int>(t_start_grid, t_end_grid, s_start_grid, s_end_grid);
+    return cube_grid;
 }
 
 
@@ -577,7 +604,7 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
                 connected_cubes_[i][j].print();
             }
         }
-        visualization(calculated_grid_cubes_columns_);
+        visualization(calculated_grid_cubes_columns_, "Initial cubes paths");
         // END DEBUG
 
 
@@ -651,13 +678,13 @@ bool StGraph::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles, st
 
 }
 
-void StGraph::visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths) {
-    grid_map_2D_->visualization(cube_paths);
+void StGraph::visualization(const std::vector<std::vector<Cube2D<int>>>& cube_paths, const std::string& name) {
+    grid_map_2D_->visualization(cube_paths, name);
 }
 
 
-void StGraph::visualization() {
-    grid_map_2D_->visualization();
+void StGraph::visualization(const std::string& name) {
+    grid_map_2D_->visualization(name);
 }
 
 void StGraph::print() {
@@ -714,7 +741,7 @@ void UncertaintyStGraph::loadUncertaintyObstacle(const DecisionMaking::Obstacle&
 
     // Transform uncertainty gaussian distribution
     // Noth that in this context, we only calculate and transform the covariance sicne the average values are represented using the vertex
-    const double covariance_coeff = 0.3;
+    // const double covariance_coeff = 0.3;
 
     // Record
     for (const auto& cur_traj_obs_vertex_and_interaction_theta : obs_traj_vertex_and_interaction_theta) {
@@ -729,7 +756,7 @@ void UncertaintyStGraph::loadUncertaintyObstacle(const DecisionMaking::Obstacle&
         // World variance is given by sensors
         // TODO: add a logic to get the initial logic for surrounding vehicles
         Eigen::Matrix<double, 2, 2> world_covariance;
-        world_covariance << pow(corresponding_t, 2.0) * covariance_coeff, 0.0, pow(corresponding_t, 2.0) * covariance_coeff, 0.0;
+        world_covariance << pow(corresponding_t, 2.0) * uncertainty_param_.obstacle_related_variance_coeff, 0.0, pow(corresponding_t, 2.0) * uncertainty_param_.obstacle_related_variance_coeff, 0.0;
         Gaussian2D obs_world_gaussian_dis = Gaussian2D(world_covariance);
 
         // Transform world to fake frenet
@@ -743,7 +770,6 @@ void UncertaintyStGraph::loadUncertaintyObstacle(const DecisionMaking::Obstacle&
         Eigen::Matrix2d scale_matrix = CoordinateUtils::getScaleMatrix(1.0 / (uncertainty_obs.velocity_ * sin(diff_angle)), 1.0);
         Gaussian2D obs_st_gaussian_dis = GaussianUtils::transformGaussianDis(obs_frenet_gaussian_dis, scale_matrix);
 
-
         UncertaintyOccupiedArea uncer_occ_area = UncertaintyOccupiedArea(cur_traj_obs_vertex, obs_st_gaussian_dis);
         uncertainty_occupied_areas_.emplace_back(uncer_occ_area);
     }
@@ -752,7 +778,7 @@ void UncertaintyStGraph::loadUncertaintyObstacle(const DecisionMaking::Obstacle&
 
 void UncertaintyStGraph::loadUncertaintyObstacles(const std::vector<DecisionMaking::Obstacle>& uncertainty_obstacles) {
     // Traverse obstacles
-    for (const auto uncertainty_obs : uncertainty_obstacles) {
+    for (const auto& uncertainty_obs : uncertainty_obstacles) {
         loadUncertaintyObstacle(uncertainty_obs);
     }
 }
@@ -794,6 +820,12 @@ bool UncertaintyStGraph::enhanceSafety(const std::vector<std::vector<Cube2D<doub
     }
     // END DEBUG
 
+    // DEBUG
+    // Visualization
+    std::vector<std::vector<Cube2D<int>>> grid_cubes_paths = realCubesPathsToGridCubesPaths(executed_cube_paths);
+    visualization(grid_cubes_paths, "Enhanced cubes paths");
+    // END DEBUG
+
 
 
     return true;
@@ -807,7 +839,7 @@ std::vector<UncertaintyCube2D<double>> UncertaintyStGraph::transformCubesPathToU
     // Calculate the accumulated gaussian distribution
     // Note that the covariance of the gaussian distribution is accumulated with the increasing of time stamp
     // TODO: refine this parameter
-    const double variance_coeff = 0.15;
+    // const double variance_coeff = 0.15;
 
     for (int i = 0; i < m; i++) {
         Cube2D<double> cur_cube = cubes[i];
@@ -815,8 +847,8 @@ std::vector<UncertaintyCube2D<double>> UncertaintyStGraph::transformCubesPathToU
         // Calculate the upper and lower bounds' gaussian distribution
         Eigen::Matrix<double, 1, 1> upper_bound_ave_matrix{cur_cube.s_end_};
         Eigen::Matrix<double, 1, 1> lower_bound_ave_matrix{cur_cube.s_start_};
-        Eigen::Matrix<double, 1, 1> upper_bound_variance_matrix{variance_coeff * pow(cur_cube.t_end_, 2.0)};
-        Eigen::Matrix<double, 1, 1> lower_bound_variance_matrix{variance_coeff * pow(cur_cube.t_end_, 2.0)};
+        Eigen::Matrix<double, 1, 1> upper_bound_variance_matrix{uncertainty_param_.ego_vehicle_related_variance_coeff * pow(cur_cube.t_end_, 2.0)};
+        Eigen::Matrix<double, 1, 1> lower_bound_variance_matrix{uncertainty_param_.ego_vehicle_related_variance_coeff * pow(cur_cube.t_end_, 2.0)};
         Gaussian1D upper_gaussian_dis = Gaussian1D(upper_bound_ave_matrix, upper_bound_variance_matrix);
         Gaussian1D lower_gaussian_dis = Gaussian1D(lower_bound_ave_matrix, lower_bound_variance_matrix);
 
@@ -857,7 +889,8 @@ void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
         // Calculate relative positions 
         double cur_nearest_t_in_line = 0.0;
         Eigen::Vector2d cur_nearest_vertice_in_polynomial;
-        bool cur_state = ShapeUtils::judgeLineWithPolynomial(line_gaussian_dis.ave_values_(0, 0), t_start, t_end, cur_uncertainty_occ_area.vertex_, &cur_nearest_t_in_line, cur_nearest_vertice_in_polynomial);
+        RelativePositionType rel_pos_type = RelativePositionType::UNKNOWN;
+        bool cur_state = ShapeUtils::judgeLineWithPolynomial(line_gaussian_dis.ave_values_(0, 0), t_start, t_end, cur_uncertainty_occ_area.vertex_, param_.s_resolution, &cur_nearest_t_in_line, cur_nearest_vertice_in_polynomial, &rel_pos_type);
         if (!cur_state) {
             printf("[UncertaintyStGraph] Error collision!!!\n");
             assert(false);
@@ -868,7 +901,7 @@ void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
 
         // Calulate location probability given a dimension and its range
         double dis_prob = GaussianUtils::calculateDistributionProbability(nearest_point_gaussian_dis, DimensionType::T, t_start, t_end);
-        double current_required_confidence = original_confidence_ * dis_prob;
+        double current_required_confidence = 1.0 - (1.0 - uncertainty_param_.required_confidence) / dis_prob;
 
         // Get the two possible distribution of the 2D distribution
         Gaussian1D start_gaussian_dis;
@@ -896,9 +929,17 @@ void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
         double start_diff_gaussian_res_buffer = LookUpTable::GaussianAverageValue::calculate(start_diff_gaussian_dis.covariance_(0, 0), current_required_confidence);
         double end_diff_gaussian_res_buffer = LookUpTable::GaussianAverageValue::calculate(end_diff_gaussian_dis.covariance_(0, 0), current_required_confidence);
 
-        buffer_value = std::max({buffer_value, start_diff_gaussian_res_buffer, end_diff_gaussian_res_buffer});
+        if ((rel_pos_type == RelativePositionType::ABOVE && bound_type == BoundType::UPPER) || (rel_pos_type == RelativePositionType::BELOW && bound_type == BoundType::LOWER)) {
+            buffer_value = std::max({buffer_value, start_diff_gaussian_res_buffer, end_diff_gaussian_res_buffer});
+        }
 
         // DEBUG
+        std::cout << "++++++++++++++++++++++++++++++++++++" << std::endl;
+        std::cout << "t start: " << t_start << ", t end: " << t_end << std::endl;
+        std::cout << "Bound type: " << bound_type << std::endl;
+        std::cout << "Neareat point gaussian dis average value: " << nearest_point_gaussian_dis.ave_values_ << std::endl;
+        std::cout << "Nearest point gaussian dis variance: " << nearest_point_gaussian_dis.covariance_ << std::endl;
+        std::cout << "Distribution probability: " << dis_prob << std::endl;
         std::cout << "Required confidence: " << current_required_confidence << std::endl;
         std::cout << "Start diff gaussian buffer: " << start_diff_gaussian_res_buffer << std::endl;
         std::cout << "End diff gaussian buffer: " << end_diff_gaussian_res_buffer << std::endl;

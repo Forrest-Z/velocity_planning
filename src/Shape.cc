@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 15:55:25
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-15 11:36:17
+ * @LastEditTime: 2022-09-19 15:31:53
  * @Description: description of shapes and its functions
  */
 
@@ -63,7 +63,7 @@ Parallelogram Parallelogram::calculateTruncatedParallelogram(const double& t_sta
 
 
 
-bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_start, const double& t_end, const Parallelogram& polynomial_vertex, double* nearest_t_in_line, Eigen::Vector2d& nearest_vertice_in_polynomial) {
+bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_start, const double& t_end, const Parallelogram& polynomial_vertex, const double& tolerance, double* nearest_t_in_line, Eigen::Vector2d& nearest_vertice_in_polynomial, RelativePositionType* relative_pos) {
     // Judge whether relative positions in the t dimension
     if (polynomial_vertex[0](0) > t_end) {
         // Polynomial is on the right direction of line 
@@ -73,10 +73,13 @@ bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_s
         // Judge relative positions in the s dimension
         if (polynomial_vertex[0](1) > line_s) {
             nearest_vertice_in_polynomial = polynomial_vertex[0];
+            *relative_pos = RelativePositionType::ABOVE;
         } else if (polynomial_vertex[1](1) < line_s) {
             nearest_vertice_in_polynomial = polynomial_vertex[1];
+            *relative_pos = RelativePositionType::BELOW;
         } else {
             nearest_vertice_in_polynomial = {polynomial_vertex[0](0), line_s};
+            *relative_pos = RelativePositionType::IGNORED;
         }
 
     } else if (polynomial_vertex[2](0) < t_start) {
@@ -87,10 +90,13 @@ bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_s
         // Judge relative positions in the s dimension
         if (polynomial_vertex[3](1) > line_s) {
             nearest_vertice_in_polynomial = polynomial_vertex[3];
+            *relative_pos = RelativePositionType::ABOVE;
         } else if (polynomial_vertex[2](1) < line_s) {
             nearest_vertice_in_polynomial = polynomial_vertex[2];
+            *relative_pos = RelativePositionType::BELOW;
         } else {
             nearest_vertice_in_polynomial = {polynomial_vertex[2](0), line_s};
+            *relative_pos = RelativePositionType::IGNORED;
         }
 
     } else {
@@ -113,7 +119,7 @@ bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_s
         // Follow the original parallelogram
         double max_s = valid_parallelogram.maxS();
         double min_s = valid_parallelogram.minS();
-        if (min_s >= line_s) {
+        if (min_s + tolerance >= line_s) {
             if (fabs(valid_parallelogram[0](1) - line_s) <= fabs(valid_parallelogram[3](1) - line_s)) {
                 *nearest_t_in_line = valid_parallelogram[0](0);
                 nearest_vertice_in_polynomial = valid_parallelogram[0];
@@ -121,8 +127,9 @@ bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_s
                 *nearest_t_in_line = valid_parallelogram[3](0);
                 nearest_vertice_in_polynomial = valid_parallelogram[3];
             }
+            *relative_pos = RelativePositionType::ABOVE;
             
-        } else if (max_s <= line_s) {
+        } else if (max_s - tolerance <= line_s) {
             if (fabs(line_s - valid_parallelogram[1](1)) <= fabs(line_s - valid_parallelogram[2](1))) {
                 *nearest_t_in_line = valid_parallelogram[1](0);
                 nearest_vertice_in_polynomial = valid_parallelogram[1];
@@ -130,10 +137,12 @@ bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_s
                 *nearest_t_in_line = valid_parallelogram[2](0);
                 nearest_vertice_in_polynomial = valid_parallelogram[2];
             }
+            *relative_pos = RelativePositionType::BELOW;
 
         } else {
 
             printf("[ShapeUtils] Error collision!!!\n");
+            assert(false);
             return false;
         }
 
