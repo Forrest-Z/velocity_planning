@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 15:52:18
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-19 15:29:41
+ * @LastEditTime: 2022-09-20 14:47:56
  * @Description: description of parallelogram
  */
 
@@ -12,10 +12,17 @@
 #include <eigen3/Eigen/Geometry>
 #include "Const.hpp"
 
-enum class RelativePositionType {
+enum class SRelativePositionType {
     ABOVE = 0,
     BELOW = 1,
     IGNORED = 2,
+    UNKNOWN = 3,
+};
+
+enum class TRelativePositionType {
+    LEFT = 0,
+    RIGHT = 1,
+    OVERLAPPED = 2,
     UNKNOWN = 3,
 };
 
@@ -72,7 +79,7 @@ class ShapeUtils {
      * @param {Vector2d&} nearest_vertice_in_polynomial: the nearest point of the polynomial
      * @return {*} is calculation successful, if there is a collision, the calculation will be failed
      */
-    static bool judgeLineWithPolynomial(const double& line_s, const double& t_start, const double& t_end, const Parallelogram& polynomial_vertex, const double& tolerance, double* nearest_t_in_line, Eigen::Vector2d& nearest_vertice_in_polynomial, RelativePositionType* relative_pos);
+    static bool judgeLineWithPolynomial(const double& line_s, const double& t_start, const double& t_end, const Parallelogram& polynomial_vertex, const double& tolerance, double* nearest_t_in_line, Eigen::Vector2d& nearest_vertice_in_polynomial, SRelativePositionType* relative_pos, TRelativePositionType* t_relative_pos);
 };
 
 class CoordinateUtils {

@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-20 11:48:20
+ * @LastEditTime: 2022-09-20 15:26:24
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -741,7 +741,6 @@ void UncertaintyStGraph::loadUncertaintyObstacle(const DecisionMaking::Obstacle&
 
     // Transform uncertainty gaussian distribution
     // Noth that in this context, we only calculate and transform the covariance sicne the average values are represented using the vertex
-    // const double covariance_coeff = 0.3;
 
     // Record
     for (const auto& cur_traj_obs_vertex_and_interaction_theta : obs_traj_vertex_and_interaction_theta) {
@@ -843,8 +842,13 @@ bool UncertaintyStGraph::enhanceSafety(const std::vector<std::vector<Cube2D<doub
     // Execute safety enhancement for each cube
     for (int i = 0; i < m; i++) {
         for (int j = 0; j < n; j++) {
-            limitUncertaintyCube(&enhanced_safety_uncertainty_cube_paths[i][j]);
-            executed_cube_paths[i][j] = enhanced_safety_uncertainty_cube_paths[i][j].enhanced_cube_;
+            if (j == 0) {
+                executed_cube_paths[i][j] = enhanced_safety_uncertainty_cube_paths[i][j].initial_cube_;                
+            } else {
+                limitUncertaintyCube(&enhanced_safety_uncertainty_cube_paths[i][j]);
+                executed_cube_paths[i][j] = enhanced_safety_uncertainty_cube_paths[i][j].enhanced_cube_;
+            }
+
         }
     }
 
@@ -964,12 +968,18 @@ void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
         // Calculate relative positions 
         double cur_nearest_t_in_line = 0.0;
         Eigen::Vector2d cur_nearest_vertice_in_polynomial;
-        RelativePositionType rel_pos_type = RelativePositionType::UNKNOWN;
-        bool cur_state = ShapeUtils::judgeLineWithPolynomial(line_gaussian_dis.ave_values_(0, 0), t_start, t_end, cur_uncertainty_occ_area.vertex_, param_.s_resolution, &cur_nearest_t_in_line, cur_nearest_vertice_in_polynomial, &rel_pos_type);
+        SRelativePositionType rel_pos_type = SRelativePositionType::UNKNOWN;
+        TRelativePositionType t_rel_pos_type = TRelativePositionType::UNKNOWN;
+        bool cur_state = ShapeUtils::judgeLineWithPolynomial(line_gaussian_dis.ave_values_(0, 0), t_start, t_end, cur_uncertainty_occ_area.vertex_, param_.s_resolution, &cur_nearest_t_in_line, cur_nearest_vertice_in_polynomial, &rel_pos_type, &t_rel_pos_type);
+        
         if (!cur_state) {
             printf("[UncertaintyStGraph] Error collision!!!\n");
             assert(false);
         }
+
+        // if (t_rel_pos_type != TRelativePositionType::OVERLAPPED) {
+        //     continue;
+        // }
 
         // Transform the gaussian distribution from an uncertainty area to a specific point
         Gaussian2D nearest_point_gaussian_dis = cur_uncertainty_occ_area.toPointGaussianDis(cur_nearest_vertice_in_polynomial);
@@ -1004,7 +1014,7 @@ void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
         double start_diff_gaussian_res_buffer = LookUpTable::GaussianAverageValue::calculate(start_diff_gaussian_dis.covariance_(0, 0), current_required_confidence);
         double end_diff_gaussian_res_buffer = LookUpTable::GaussianAverageValue::calculate(end_diff_gaussian_dis.covariance_(0, 0), current_required_confidence);
 
-        if ((rel_pos_type == RelativePositionType::ABOVE && bound_type == BoundType::UPPER) || (rel_pos_type == RelativePositionType::BELOW && bound_type == BoundType::LOWER)) {
+        if ((rel_pos_type == SRelativePositionType::ABOVE && bound_type == BoundType::UPPER) || (rel_pos_type == SRelativePositionType::BELOW && bound_type == BoundType::LOWER)) {
             buffer_value = std::max({buffer_value, start_diff_gaussian_res_buffer, end_diff_gaussian_res_buffer});
         }
 

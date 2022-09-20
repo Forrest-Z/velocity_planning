@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-20 11:33:05
+ * @LastEditTime: 2022-09-20 15:02:54
  * @Description: velocity optimization.
  */
 
@@ -699,7 +699,7 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
 
     // ~Stage I: determine the s sampling number due to the number of the available paths
     int available_cube_paths_num = cube_paths.size();
-    const int optimization_maximum_number = 20;
+    const int optimization_maximum_number = 10;
     int s_sampling_number = static_cast<int>(optimization_maximum_number / available_cube_paths_num);
     int practical_optimization_number = available_cube_paths_num * s_sampling_number;
 
