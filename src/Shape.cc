@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 15:55:25
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-19 15:31:53
+ * @LastEditTime: 2022-09-20 10:02:35
  * @Description: description of shapes and its functions
  */
 
@@ -103,7 +103,7 @@ bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_s
         // Polynomial and line has some overlapped ranges in the t dimension
         // Subdivide relative positions in t dimension
         Parallelogram valid_parallelogram;
-        if (polynomial_vertex[0](0) > t_start && polynomial_vertex[2](0) < t_end) {
+        if (polynomial_vertex[0](0) >= t_start && polynomial_vertex[2](0) <= t_end) {
             valid_parallelogram = polynomial_vertex;
         } else if (polynomial_vertex[0](0) < t_start && polynomial_vertex[2](0) > t_end) {
             valid_parallelogram = polynomial_vertex.calculateTruncatedParallelogram(t_start, t_end);
@@ -112,7 +112,7 @@ bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_s
         } else if (polynomial_vertex[0](0) < t_start && polynomial_vertex[2](0) > t_start) {
             valid_parallelogram = polynomial_vertex.calculateTruncatedParallelogram(t_start, polynomial_vertex[2](0));
         } else {
-            printf("[ShapeUtils] Unknwon relative positions situations!!!\n");
+            printf("[ShapeUtils] Unknown relative positions situations!!!\n");
             assert(false);
         }
 
@@ -153,13 +153,15 @@ bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_s
 
 Eigen::Matrix2d CoordinateUtils::getRotationMatrix(const double& theta) {
     Eigen::Matrix2d rotation_matrix;
-    rotation_matrix << cos(theta), sin(theta), -sin(theta), cos(theta);
+    rotation_matrix << cos(theta), sin(theta), 
+                       -sin(theta), cos(theta);
     return rotation_matrix;
 }
 
 Eigen::Matrix2d CoordinateUtils::getScaleMatrix(const double& scale_1, const double& scale_2) {
     Eigen::Matrix2d scale_matrix;
-    scale_matrix << scale_1, 0.0, scale_2, 0.0;
+    scale_matrix << scale_1, 0.0, 
+                    0.0, scale_2;
     return scale_matrix;
 }
 

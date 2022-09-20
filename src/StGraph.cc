@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-19 17:16:20
+ * @LastEditTime: 2022-09-20 11:48:20
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -756,19 +756,60 @@ void UncertaintyStGraph::loadUncertaintyObstacle(const DecisionMaking::Obstacle&
         // World variance is given by sensors
         // TODO: add a logic to get the initial logic for surrounding vehicles
         Eigen::Matrix<double, 2, 2> world_covariance;
-        world_covariance << pow(corresponding_t, 2.0) * uncertainty_param_.obstacle_related_variance_coeff, 0.0, pow(corresponding_t, 2.0) * uncertainty_param_.obstacle_related_variance_coeff, 0.0;
+        world_covariance << pow(corresponding_t, 2.0) * uncertainty_param_.obstacle_related_variance_coeff, 0.0, 
+                            0.0, pow(corresponding_t, 2.0) * uncertainty_param_.obstacle_related_variance_coeff;
         Gaussian2D obs_world_gaussian_dis = Gaussian2D(world_covariance);
+
+        // DEBUG
+        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+        std::cout << "World covariance: " << std::endl;
+        std::cout << world_covariance << std::endl;
+        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+        // END DEBUG
 
         // Transform world to fake frenet
         // Get the rotation matrix
         Eigen::Matrix2d rotation_matrix = CoordinateUtils::getRotationMatrix(ego_vehicle_interaction_theta);
         Gaussian2D obs_frenet_gaussian_dis = GaussianUtils::transformGaussianDis(obs_world_gaussian_dis, rotation_matrix);
 
+        // DEBUG
+        std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+        std::cout << "Rotation matrix: " << std::endl;
+        std::cout << rotation_matrix << std::endl;
+        std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+        // END DBEUG
+
+        // DEBUG
+        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+        std::cout << "Fake frenet covariance: " << std::endl;
+        std::cout << obs_frenet_gaussian_dis.covariance_ << std::endl;
+        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+        // END DEBUG
+
         // Transform fake frenet to st
-        // TODO: check this logic
+        Eigen::Matrix2d scale_matrix;
         double diff_angle = obstacle_interaction_theta - ego_vehicle_interaction_theta;
-        Eigen::Matrix2d scale_matrix = CoordinateUtils::getScaleMatrix(1.0 / (uncertainty_obs.velocity_ * sin(diff_angle)), 1.0);
+        if (fabs(diff_angle) < uncertainty_param_.front_vehicle_max_theta_diff) {
+            scale_matrix = CoordinateUtils::getScaleMatrix(0.001, 1.0);
+        } else {
+            scale_matrix = CoordinateUtils::getScaleMatrix(1.0 / (uncertainty_obs.velocity_ * sin(diff_angle)), 1.0);
+        }
+
         Gaussian2D obs_st_gaussian_dis = GaussianUtils::transformGaussianDis(obs_frenet_gaussian_dis, scale_matrix);
+
+        // DEBUG
+        std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+        std::cout << "Scale matrix: " << std::endl;
+        std::cout << scale_matrix << std::endl;
+        std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+        // END DBEUG
+
+        // DEBUG
+        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+        std::cout << "st covariance: " << std::endl;
+        std::cout << obs_st_gaussian_dis.covariance_ << std::endl;
+        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+        // END DEBUG
 
         UncertaintyOccupiedArea uncer_occ_area = UncertaintyOccupiedArea(cur_traj_obs_vertex, obs_st_gaussian_dis);
         uncertainty_occupied_areas_.emplace_back(uncer_occ_area);
@@ -807,7 +848,6 @@ bool UncertaintyStGraph::enhanceSafety(const std::vector<std::vector<Cube2D<doub
         }
     }
 
-    *enhanced_cube_paths = executed_cube_paths;
 
     // DEBUG
     std::cout << "+++++++++++++++++++++++++++++++++ Enhanced safety cubes information +++++++++++++++++++++++++++++++++" << std::endl;
@@ -826,7 +866,14 @@ bool UncertaintyStGraph::enhanceSafety(const std::vector<std::vector<Cube2D<doub
     visualization(grid_cubes_paths, "Enhanced cubes paths");
     // END DEBUG
 
+    // Check continuity
+    std::vector<std::vector<Cube2D<double>>> checked_connected_cube_paths;
+    bool connected_paths_existence = checkCubesPathsContinuity(executed_cube_paths, &checked_connected_cube_paths);
+    if (!connected_paths_existence) {
+        return false;
+    }
 
+    *enhanced_cube_paths = checked_connected_cube_paths;
 
     return true;
 }
@@ -862,6 +909,26 @@ std::vector<UncertaintyCube2D<double>> UncertaintyStGraph::transformCubesPathToU
     
 }
 
+bool UncertaintyStGraph::checkCubesPathsContinuity(const std::vector<std::vector<Cube2D<double>>>& input_cubes_paths, std::vector<std::vector<Cube2D<double>>>* output_cubes_paths) {
+    std::vector<std::vector<Cube2D<double>>> res;
+    for (int i = 0; i < input_cubes_paths.size(); i++) {
+        if (checkSingleCubesPathContinuity(input_cubes_paths[i])) {
+            res.emplace_back(input_cubes_paths[i]);
+        }
+    }
+    *output_cubes_paths = res;
+    return !res.empty();
+}
+
+bool UncertaintyStGraph::checkSingleCubesPathContinuity(const std::vector<Cube2D<double>>& cubes_path) {
+    for (int i = 0; i < cubes_path.size() - 1; i++) {
+        if (!isCubesConnected(cubes_path[i], cubes_path[i + 1])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void UncertaintyStGraph::limitUncertaintyCube(UncertaintyCube2D<double>* uncertainty_cube) {
     double t_start = uncertainty_cube->initial_cube_.t_start_;
     double t_end = uncertainty_cube->initial_cube_.t_end_;
@@ -886,6 +953,14 @@ void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
 
     // Traverse all the uncertainty occupied areas
     for (const auto& cur_uncertainty_occ_area : uncertainty_occupied_areas_) {
+
+        // DEBUG
+        std::cout << "#################################################" << std::endl;
+        std::cout << "covariance: " << std::endl;
+        std::cout << cur_uncertainty_occ_area.gaussian_dis_.covariance_ << std::endl;
+        std::cout << "#################################################" << std::endl;
+        // END DEBUG
+
         // Calculate relative positions 
         double cur_nearest_t_in_line = 0.0;
         Eigen::Vector2d cur_nearest_vertice_in_polynomial;

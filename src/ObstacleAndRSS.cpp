@@ -775,6 +775,26 @@ bool DecisionMaking::RSS::occupationInteractionJudgement(const OccupationArea &s
     }
     // clock_t end_calc_time = clock();
     // LOG(INFO) << "轨迹相交判定所花时间为" << static_cast<double>(end_calc_time - start_calc_time) * 1000.0 / CLOCKS_PER_SEC << "ms，计算次数为" << subvehicle_occupation_area.getSampledOccupationArea().size() * obstacle_occupation_area.getSampledOccupationArea().size() << "次";
+
+    // Refine obstacle collision points
+    if (cur_obstacle_start_interact_index == cur_obstacle_end_interact_index && cur_obstacle_start_interact_index != -1) {
+        
+        // DEBUG
+        std::cout << "*************************************" << std::endl;
+        std::cout << "Refinement of the obstacle collision point" << std::endl;
+        std::cout << "*************************************" << std::endl;
+        // END DEBUG
+
+
+        int new_start_index = obstacle_occupation_area.getSampledOccupationAreaBijectionIndex(cur_obstacle_start_interact_index);
+        for (int i = std::min(obstacle_occupation_area.getOccupationArea().size(), obstacle_occupation_area.getSampledOccupationAreaBijectionIndex(new_start_index + 1)); i >= new_start_index ; i++) {
+            if (Tools::isRectangleOverlap(subvehicle_occupation_area.getOccupationArea()[cur_ego_vehicle_start_interact_index], obstacle_occupation_area.getOccupationArea()[i], RECTANGLE_INTERACTION_EXPAND_RATION, RECTANGLE_INTERACTION_EXPAND_RATION)) {
+                cur_obstacle_end_interact_index = i;
+                break;
+            }
+        }
+    }
+
     *subvehicle_interact_start_index = cur_ego_vehicle_start_interact_index;
     *subvehicle_interact_end_index = cur_ego_vehicle_end_interact_index;
     *obstacle_start_interact_index = cur_obstacle_start_interact_index;

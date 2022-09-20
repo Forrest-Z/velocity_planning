@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-19 15:00:53
+ * @LastEditTime: 2022-09-20 11:45:58
  * @Description: s-t graph
  */
 
@@ -220,9 +220,10 @@ class UncertaintyStGraph : public StGraph {
     };
 
     struct UncertaintyParam {
-        double obstacle_related_variance_coeff = 0.0001;
+        double obstacle_related_variance_coeff = 0.3;
         double ego_vehicle_related_variance_coeff = 0.15;
         double required_confidence = 0.9;
+        double front_vehicle_max_theta_diff = 0.15; 
     };
 
     using StGraph::StGraph;
@@ -236,6 +237,10 @@ class UncertaintyStGraph : public StGraph {
     bool enhanceSafety(const std::vector<std::vector<Cube2D<double>>>& initial_cube_paths, std::vector<std::vector<Cube2D<double>>>* enhanced_cube_paths);
 
     std::vector<UncertaintyCube2D<double>> transformCubesPathToUncertaintyCubesPath(const std::vector<Cube2D<double>>& cubes);
+
+    bool checkCubesPathsContinuity(const std::vector<std::vector<Cube2D<double>>>& input_cubes_paths, std::vector<std::vector<Cube2D<double>>>* output_cubes_paths);
+
+    bool checkSingleCubesPathContinuity(const std::vector<Cube2D<double>>& cubes_path);
 
     /**
      * @description: limit the cube's upper and lower bounds due to the confidence and uncertainty 

@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-16 16:55:12
+ * @LastEditTime: 2022-09-20 11:33:05
  * @Description: velocity optimization.
  */
 
@@ -723,14 +723,20 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
     ress_.resize(n);
     values_.resize(n);
 
-
+    // std::vector<std::thread> thread_set(cube_paths.size() * sampled_s.size());
 
     for (int i = 0; i < cube_paths.size(); i++) {
         for (int j = 0; j < sampled_s.size(); j++) {
             int index = i * sampled_s.size() + j;
             runSingleCubesPath(cube_paths[i], start_state, sampled_s[j], max_velocity, min_velocity, max_acceleration, min_acceleration, index);
+            // thread_set[index] = std::thread(&VelocityPlanning::VelocityOptimizer::runSingleCubesPath, this, cube_paths[i], start_state, sampled_s[j], max_velocity, min_velocity, max_acceleration, min_acceleration, index);
         }
     }
+
+    // for (int i = 0; i < thread_set.size(); i++) {
+    //     thread_set[i].join();
+    // }
+
 
     // ~Stage III: select the res with the optimal jerk
     std::vector<std::pair<double, int>> s_info;
@@ -1367,7 +1373,7 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     std::cout << "Max acceleration: " << planning_state_->getAccelerationLimitationMax() << ", min acceleration: " << planning_state_->getAccelerationLimitationMin() << std::endl;
 
     velocity_optimizer_ = new VelocityPlanning::VelocityOptimizer();
-    bool optimization_success = velocity_optimizer_->runOnce(cube_paths, start_state_, last_s_range, planning_state_->getVelocityLimitationMax(), planning_state_->getVelocityLimitationMin(), planning_state_->getAccelerationLimitationMax(), planning_state_->getAccelerationLimitationMin(), &s, &t);
+    bool optimization_success = velocity_optimizer_->runOnce(enhanced_cube_paths, start_state_, last_s_range, planning_state_->getVelocityLimitationMax(), planning_state_->getVelocityLimitationMin(), planning_state_->getAccelerationLimitationMax(), planning_state_->getAccelerationLimitationMin(), &s, &t);
 
     if (optimization_success) {
         std::cout << "Final selected s: " << s.back() << std::endl;

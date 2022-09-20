@@ -204,7 +204,6 @@ Visualization Manager:
           Marker Topic: /map/vis
           Name: Main
           Namespaces:
-            auxiliary: true
             label: true
             line: true
             region: true
@@ -245,7 +244,7 @@ Visualization Manager:
           Marker Topic: /map/mission
           Name: MarkerArray
           Namespaces:
-            {}
+            line: true
           Queue Size: 100
           Value: true
       Enabled: true
@@ -774,7 +773,7 @@ Visualization Manager:
       Marker Topic: /motion_planning/visualization
       Name: MarkerArray
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Angle Tolerance: 0.100000001
@@ -824,7 +823,7 @@ Visualization Manager:
       Marker Topic: /motion_planning/vis_obstacle_topic
       Name: MarkerArray
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 0.5
@@ -866,7 +865,7 @@ Visualization Manager:
       Marker Topic: /observe_planning_output/visualization
       Name: MarkerArray
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Class: rviz/TF
@@ -1002,7 +1001,7 @@ Visualization Manager:
       Marker Topic: /motion_planning/vis_occupation_topic
       Name: MarkerArray
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 1
