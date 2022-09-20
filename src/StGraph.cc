@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-20 15:26:24
+ * @LastEditTime: 2022-09-20 15:46:42
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -596,7 +596,7 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
     if (connected_cubes_.size() > 0) {
         *output_cubes = connected_cubes_;
 
-        // DEBUG
+        // // DEBUG
         for (int i = 0; i < connected_cubes_.size(); i++) {
             std::cout << "path " << i << std::endl;
             for (int j = 0; j < connected_cubes_[i].size(); j++) {
@@ -604,8 +604,8 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
                 connected_cubes_[i][j].print();
             }
         }
-        visualization(calculated_grid_cubes_columns_, "Initial cubes paths");
-        // END DEBUG
+        // visualization(calculated_grid_cubes_columns_, "Initial cubes paths");
+        // // END DEBUG
 
 
         calculated_grid_cubes_columns_.clear();
@@ -626,9 +626,9 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
 
 void StGraph::dfsConnectCubes(const std::vector<std::vector<Cube2D<double>>>& input_cubes, int layer_index, std::vector<Cube2D<double>>& cube_path) {
 
-    // DEBUG
-    std::cout << "layer index: " << layer_index << std::endl;
-    // END DEBUG
+    // // DEBUG
+    // std::cout << "layer index: " << layer_index << std::endl;
+    // // END DEBUG
 
     if (layer_index == input_cubes.size()) {
         connected_cubes_.emplace_back(cube_path);
@@ -759,31 +759,31 @@ void UncertaintyStGraph::loadUncertaintyObstacle(const DecisionMaking::Obstacle&
                             0.0, pow(corresponding_t, 2.0) * uncertainty_param_.obstacle_related_variance_coeff;
         Gaussian2D obs_world_gaussian_dis = Gaussian2D(world_covariance);
 
-        // DEBUG
-        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
-        std::cout << "World covariance: " << std::endl;
-        std::cout << world_covariance << std::endl;
-        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
-        // END DEBUG
+        // // DEBUG
+        // std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+        // std::cout << "World covariance: " << std::endl;
+        // std::cout << world_covariance << std::endl;
+        // std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+        // // END DEBUG
 
         // Transform world to fake frenet
         // Get the rotation matrix
         Eigen::Matrix2d rotation_matrix = CoordinateUtils::getRotationMatrix(ego_vehicle_interaction_theta);
         Gaussian2D obs_frenet_gaussian_dis = GaussianUtils::transformGaussianDis(obs_world_gaussian_dis, rotation_matrix);
 
-        // DEBUG
-        std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
-        std::cout << "Rotation matrix: " << std::endl;
-        std::cout << rotation_matrix << std::endl;
-        std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
-        // END DBEUG
+        // // DEBUG
+        // std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+        // std::cout << "Rotation matrix: " << std::endl;
+        // std::cout << rotation_matrix << std::endl;
+        // std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+        // // END DBEUG
 
-        // DEBUG
-        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
-        std::cout << "Fake frenet covariance: " << std::endl;
-        std::cout << obs_frenet_gaussian_dis.covariance_ << std::endl;
-        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
-        // END DEBUG
+        // // DEBUG
+        // std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+        // std::cout << "Fake frenet covariance: " << std::endl;
+        // std::cout << obs_frenet_gaussian_dis.covariance_ << std::endl;
+        // std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+        // // END DEBUG
 
         // Transform fake frenet to st
         Eigen::Matrix2d scale_matrix;
@@ -796,19 +796,19 @@ void UncertaintyStGraph::loadUncertaintyObstacle(const DecisionMaking::Obstacle&
 
         Gaussian2D obs_st_gaussian_dis = GaussianUtils::transformGaussianDis(obs_frenet_gaussian_dis, scale_matrix);
 
-        // DEBUG
-        std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
-        std::cout << "Scale matrix: " << std::endl;
-        std::cout << scale_matrix << std::endl;
-        std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
-        // END DBEUG
+        // // DEBUG
+        // std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+        // std::cout << "Scale matrix: " << std::endl;
+        // std::cout << scale_matrix << std::endl;
+        // std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+        // // END DBEUG
 
-        // DEBUG
-        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
-        std::cout << "st covariance: " << std::endl;
-        std::cout << obs_st_gaussian_dis.covariance_ << std::endl;
-        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
-        // END DEBUG
+        // // DEBUG
+        // std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+        // std::cout << "st covariance: " << std::endl;
+        // std::cout << obs_st_gaussian_dis.covariance_ << std::endl;
+        // std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+        // // END DEBUG
 
         UncertaintyOccupiedArea uncer_occ_area = UncertaintyOccupiedArea(cur_traj_obs_vertex, obs_st_gaussian_dis);
         uncertainty_occupied_areas_.emplace_back(uncer_occ_area);
@@ -864,11 +864,11 @@ bool UncertaintyStGraph::enhanceSafety(const std::vector<std::vector<Cube2D<doub
     }
     // END DEBUG
 
-    // DEBUG
-    // Visualization
-    std::vector<std::vector<Cube2D<int>>> grid_cubes_paths = realCubesPathsToGridCubesPaths(executed_cube_paths);
-    visualization(grid_cubes_paths, "Enhanced cubes paths");
-    // END DEBUG
+    // // DEBUG
+    // // Visualization
+    // std::vector<std::vector<Cube2D<int>>> grid_cubes_paths = realCubesPathsToGridCubesPaths(executed_cube_paths);
+    // visualization(grid_cubes_paths, "Enhanced cubes paths");
+    // // END DEBUG
 
     // Check continuity
     std::vector<std::vector<Cube2D<double>>> checked_connected_cube_paths;
@@ -958,12 +958,12 @@ void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
     // Traverse all the uncertainty occupied areas
     for (const auto& cur_uncertainty_occ_area : uncertainty_occupied_areas_) {
 
-        // DEBUG
-        std::cout << "#################################################" << std::endl;
-        std::cout << "covariance: " << std::endl;
-        std::cout << cur_uncertainty_occ_area.gaussian_dis_.covariance_ << std::endl;
-        std::cout << "#################################################" << std::endl;
-        // END DEBUG
+        // // DEBUG
+        // std::cout << "#################################################" << std::endl;
+        // std::cout << "covariance: " << std::endl;
+        // std::cout << cur_uncertainty_occ_area.gaussian_dis_.covariance_ << std::endl;
+        // std::cout << "#################################################" << std::endl;
+        // // END DEBUG
 
         // Calculate relative positions 
         double cur_nearest_t_in_line = 0.0;
@@ -1018,17 +1018,17 @@ void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
             buffer_value = std::max({buffer_value, start_diff_gaussian_res_buffer, end_diff_gaussian_res_buffer});
         }
 
-        // DEBUG
-        std::cout << "++++++++++++++++++++++++++++++++++++" << std::endl;
-        std::cout << "t start: " << t_start << ", t end: " << t_end << std::endl;
-        std::cout << "Bound type: " << bound_type << std::endl;
-        std::cout << "Neareat point gaussian dis average value: " << nearest_point_gaussian_dis.ave_values_ << std::endl;
-        std::cout << "Nearest point gaussian dis variance: " << nearest_point_gaussian_dis.covariance_ << std::endl;
-        std::cout << "Distribution probability: " << dis_prob << std::endl;
-        std::cout << "Required confidence: " << current_required_confidence << std::endl;
-        std::cout << "Start diff gaussian buffer: " << start_diff_gaussian_res_buffer << std::endl;
-        std::cout << "End diff gaussian buffer: " << end_diff_gaussian_res_buffer << std::endl;
-        // END DEBUG
+        // // DEBUG
+        // std::cout << "++++++++++++++++++++++++++++++++++++" << std::endl;
+        // std::cout << "t start: " << t_start << ", t end: " << t_end << std::endl;
+        // std::cout << "Bound type: " << bound_type << std::endl;
+        // std::cout << "Neareat point gaussian dis average value: " << nearest_point_gaussian_dis.ave_values_ << std::endl;
+        // std::cout << "Nearest point gaussian dis variance: " << nearest_point_gaussian_dis.covariance_ << std::endl;
+        // std::cout << "Distribution probability: " << dis_prob << std::endl;
+        // std::cout << "Required confidence: " << current_required_confidence << std::endl;
+        // std::cout << "Start diff gaussian buffer: " << start_diff_gaussian_res_buffer << std::endl;
+        // std::cout << "End diff gaussian buffer: " << end_diff_gaussian_res_buffer << std::endl;
+        // // END DEBUG
 
 
     }

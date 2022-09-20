@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-20 15:02:54
+ * @LastEditTime: 2022-09-20 15:49:15
  * @Description: velocity optimization.
  */
 
@@ -774,21 +774,21 @@ bool VelocityOptimizer::runOnce(const std::vector<std::vector<Cube2D<double>>>& 
         double cur_jerk = values_[i];
         s_info.emplace_back(std::make_pair(cur_s, i));
 
-        // DEBUG
-        std::cout << "Number: " << i << std::endl;
-        std::cout << "End s: " << cur_s << std::endl;
-        std::cout << "Jerk: " << cur_jerk << std::endl;
-        std::cout << "s: " << std::endl;
-        for (int j = 0; j < ss_[i].size(); j++) {
-            std::cout << ss_[i][j] << ", ";
-        }
-        std::cout << std::endl;
-        std::cout << "t: " << std::endl;
-        for (int j = 0; j < tt_[i].size(); j++) {
-            std::cout << tt_[i][j] << ", ";
-        }
-        std::cout << std::endl;
-        // END DEBUG
+        // // DEBUG
+        // std::cout << "Number: " << i << std::endl;
+        // std::cout << "End s: " << cur_s << std::endl;
+        // std::cout << "Jerk: " << cur_jerk << std::endl;
+        // std::cout << "s: " << std::endl;
+        // for (int j = 0; j < ss_[i].size(); j++) {
+        //     std::cout << ss_[i][j] << ", ";
+        // }
+        // std::cout << std::endl;
+        // std::cout << "t: " << std::endl;
+        // for (int j = 0; j < tt_[i].size(); j++) {
+        //     std::cout << tt_[i][j] << ", ";
+        // }
+        // std::cout << std::endl;
+        // // END DEBUG
 
     }
 
@@ -1376,7 +1376,10 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     bool optimization_success = velocity_optimizer_->runOnce(enhanced_cube_paths, start_state_, last_s_range, planning_state_->getVelocityLimitationMax(), planning_state_->getVelocityLimitationMin(), planning_state_->getAccelerationLimitationMax(), planning_state_->getAccelerationLimitationMin(), &s, &t);
 
     if (optimization_success) {
-        std::cout << "Final selected s: " << s.back() << std::endl;
+        // std::cout << "Velocity profile generation success." << std::endl;
+        // std::cout << "Final selected s: " << s.back() << std::endl;
+        printf("[VelocityPlanner] Velocity profile generation success.\n");
+        printf("[VelocityPlanner] Final selected s: %lf, average velocity: %lf.\n", s.back(), s.back() / st_graph_->param_.t_max);
     } 
 
     if (!optimization_success) {
@@ -1390,28 +1393,28 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     bezier_curve_traj_generator_ = new BezierPiecewiseCurve(s, t);
     std::tuple<std::vector<double>, std::vector<double>, std::vector<double>, std::vector<double>> profile = bezier_curve_traj_generator_->generateTraj();
 
-    // DEBUG
-    std::vector<double> ss, vv, tt;
-    ss = std::get<0>(profile);
-    vv = std::get<1>(profile);
-    tt = std::get<3>(profile);
-    std::cout << "Planned trajectory" << std::endl;
-    std::cout << "s: " << std::endl;
-    for (int i = 0; i < ss.size(); i++) {
-        std::cout << ss[i] << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "v: " << std::endl;
-    for (int i = 0; i < vv.size(); i++) {
-        std::cout << vv[i] << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "t: " << std::endl;
-    for (int i = 0; i < tt.size(); i++) {
-        std::cout << tt[i] << ", ";
-    }
-    std::cout << std::endl;
-    // END DEBUG
+    // // DEBUG
+    // std::vector<double> ss, vv, tt;
+    // ss = std::get<0>(profile);
+    // vv = std::get<1>(profile);
+    // tt = std::get<3>(profile);
+    // std::cout << "Planned trajectory" << std::endl;
+    // std::cout << "s: " << std::endl;
+    // for (int i = 0; i < ss.size(); i++) {
+    //     std::cout << ss[i] << ", ";
+    // }
+    // std::cout << std::endl;
+    // std::cout << "v: " << std::endl;
+    // for (int i = 0; i < vv.size(); i++) {
+    //     std::cout << vv[i] << ", ";
+    // }
+    // std::cout << std::endl;
+    // std::cout << "t: " << std::endl;
+    // for (int i = 0; i < tt.size(); i++) {
+    //     std::cout << tt[i] << ", ";
+    // }
+    // std::cout << std::endl;
+    // // END DEBUG
 
     // ~Stage V: supply s-t profile to the standard state
     planning_state_->loadStProfile(std::get<0>(profile), std::get<1>(profile), std::get<2>(profile));

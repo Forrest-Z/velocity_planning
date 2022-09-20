@@ -366,11 +366,11 @@ class StandardState {
                     }
                     double velocity = v_[valid_index];
 
-                    // DEBUG
-                    if (lower_index < s_.size()) {
-                        std::cout << "s: " << s << ", velocity: " << velocity << std::endl;
-                    }
-                    // END DEBUG
+                    // // DEBUG
+                    // if (lower_index < s_.size()) {
+                    //     std::cout << "s: " << s << ", velocity: " << velocity << std::endl;
+                    // }
+                    // // END DEBUG
 
                     point.velocity = velocity;
                 }
