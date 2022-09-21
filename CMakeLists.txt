@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   visualization_msgs
   dbw_mkz_msgs
+  data_visualization_msg
   path_planning_msgs
   vec_map_cpp_msgs
   ibeo_lidar_msgs
@@ -135,6 +136,7 @@ catkin_package(
   std_msgs
   visualization_msgs
   dbw_mkz_msgs
+  data_visualization_msg
   path_planning_msgs
   vec_map_cpp_msgs
   ibeo_lidar_msgs
@@ -185,9 +187,9 @@ add_library(${PROJECT_NAME}_lib src/Shape.cc src/GaussianDistribution.cc src/Loo
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} dbw_mkz_msgs_gencpp ibeo_lidar_msgs_gencpp path_planning_msgs_gencpp traffic_light_msgs_gencpp vec_map_cpp_msgs_gencpp mission_msgs_gencpp control_msgs_gencpp)
+add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} dbw_mkz_msgs_gencpp ibeo_lidar_msgs_gencpp data_visualization_msg_gencpp path_planning_msgs_gencpp traffic_light_msgs_gencpp vec_map_cpp_msgs_gencpp mission_msgs_gencpp control_msgs_gencpp)
 
-add_dependencies(${PROJECT_NAME}_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} dbw_mkz_msgs_gencpp ibeo_lidar_msgs_gencpp path_planning_msgs_gencpp traffic_light_msgs_gencpp vec_map_cpp_msgs_gencpp mission_msgs_gencpp control_msgs_gencpp)
+add_dependencies(${PROJECT_NAME}_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} dbw_mkz_msgs_gencpp ibeo_lidar_msgs_gencpp data_visualization_msg_gencpp path_planning_msgs_gencpp traffic_light_msgs_gencpp vec_map_cpp_msgs_gencpp mission_msgs_gencpp control_msgs_gencpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_lib

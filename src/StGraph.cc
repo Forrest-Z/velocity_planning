@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-21 09:28:10
+ * @LastEditTime: 2022-09-21 18:06:11
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -103,6 +103,12 @@ bool GridMap2D::expandSingleColumn(const int& grid_t_start, const int& grid_t_en
             // Complete the last round
             if (cur_s_grid > cur_s_start) {
                 Cube2D<int> cube = Cube2D<int>(grid_t_start, grid_t_end, cur_s_start, cur_s_grid);
+                cube.upper_collision_type_ = CollisionType::ACCELERATION_BOUNDARY;
+                if (calculated_cubes.empty()) {
+                    cube.lower_collision_type_ = CollisionType::ACCELERATION_BOUNDARY;
+                } else {
+                    cube.lower_collision_type_ = CollisionType::OBSTACLE_BOUNDARY;
+                }
                 calculated_cubes.emplace_back(cube);
             }
             break;
@@ -110,6 +116,12 @@ bool GridMap2D::expandSingleColumn(const int& grid_t_start, const int& grid_t_en
             // Complete the medium round
             if (cur_s_grid > cur_s_start) {
                 Cube2D<int> cube = Cube2D<int>(grid_t_start, grid_t_end, cur_s_start, cur_s_grid);
+                cube.upper_collision_type_ = CollisionType::OBSTACLE_BOUNDARY;
+                if (calculated_cubes.empty()) {
+                    cube.lower_collision_type_ = CollisionType::ACCELERATION_BOUNDARY;
+                } else {
+                    cube.lower_collision_type_ = CollisionType::OBSTACLE_BOUNDARY;
+                }
                 calculated_cubes.emplace_back(cube);
             }
 
@@ -254,7 +266,7 @@ Cube2D<double> StGraph::gridCubeToRealCube(const Cube2D<int>& grid_cube) {
     double t_end_real = grid_cube.t_end_ * param_.t_resolution;
     double s_start_real = grid_cube.s_start_ * param_.s_resolution;
     double s_end_real = grid_cube.s_end_ * param_.s_resolution;
-    Cube2D<double> cube_real = Cube2D<double>(t_start_real, t_end_real, s_start_real, s_end_real);
+    Cube2D<double> cube_real = Cube2D<double>(t_start_real, t_end_real, s_start_real, s_end_real, grid_cube.upper_collision_type_, grid_cube.lower_collision_type_);
     return cube_real;
 }
 
@@ -279,7 +291,7 @@ Cube2D<int> StGraph::realCubeToGridCube(const Cube2D<double>& real_cube) {
     int t_end_grid = real_cube.t_end_ / param_.t_resolution;
     int s_start_grid = real_cube.s_start_ / param_.s_resolution;
     int s_end_grid = real_cube.s_end_ / param_.s_resolution;
-    Cube2D<int> cube_grid = Cube2D<int>(t_start_grid, t_end_grid, s_start_grid, s_end_grid);
+    Cube2D<int> cube_grid = Cube2D<int>(t_start_grid, t_end_grid, s_start_grid, s_end_grid, real_cube.upper_collision_type_, real_cube.lower_collision_type_);
     return cube_grid;
 }
 
@@ -322,14 +334,14 @@ std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> StGraph::l
             continue;
         }
 
-        if (ego_vehicle_start_collision_index == 0) {
+        // if (ego_vehicle_start_collision_index == 0) {
             
-            // // DEBUG
-            // std::cout << "Rear vehicle, ignored" << std::endl;
-            // // END DEBUG
+        //     // // DEBUG
+        //     // std::cout << "Rear vehicle, ignored" << std::endl;
+        //     // // END DEBUG
 
-            continue;
-        }
+        //     continue;
+        // }
 
         // Handle the situation where s_end is smaller than s_start
         if (obstacle.getObstacleVelocity() > 1.0 && fabs(obstacle.getObstacleVelocityDirection() - ego_occupy_area_.getOccupationArea()[ego_vehicle_start_collision_index].rotation_) > M_PI / 2.0) {
@@ -342,7 +354,7 @@ std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> StGraph::l
 
         // Calculate collision information
         double t_start = (cur_obs_start_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
-        double t_end = (cur_obs_end_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
+        double t_end = std::min((cur_obs_end_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity(), param_.t_max);
         double s_start = ego_vehicle_start_collision_index * LANE_GAP_DISTANCE;
         double s_end = ego_vehicle_end_collision_index * LANE_GAP_DISTANCE;
 
@@ -604,7 +616,7 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
         //         connected_cubes_[i][j].print();
         //     }
         // }
-        // visualization(calculated_grid_cubes_columns_, "Initial cubes paths");
+        visualization(calculated_grid_cubes_columns_, "Initial cubes paths");
         // // END DEBUG
 
         for (int i = 0; i < connected_cubes_.size(); i++) {
@@ -614,7 +626,6 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
                 connected_cubes_[i][j].print();
             }
         }
-
 
         calculated_grid_cubes_columns_.clear();
         connected_cubes_.clear();
@@ -872,11 +883,11 @@ bool UncertaintyStGraph::enhanceSafety(const std::vector<std::vector<Cube2D<doub
     // }
     // END DEBUG
 
-    // // DEBUG
-    // // Visualization
-    // std::vector<std::vector<Cube2D<int>>> grid_cubes_paths = realCubesPathsToGridCubesPaths(executed_cube_paths);
-    // visualization(grid_cubes_paths, "Enhanced cubes paths");
-    // // END DEBUG
+    // DEBUG
+    // Visualization
+    std::vector<std::vector<Cube2D<int>>> grid_cubes_paths = realCubesPathsToGridCubesPaths(executed_cube_paths);
+    visualization(grid_cubes_paths, "Enhanced cubes paths");
+    // END DEBUG
 
     std::cout << "+++++++++++++++++++++++++++++++++ Enhanced safety cubes information +++++++++++++++++++++++++++++++++" << std::endl;
     for (int i = 0; i < executed_cube_paths.size(); i++) {
@@ -957,8 +968,8 @@ void UncertaintyStGraph::limitUncertaintyCube(UncertaintyCube2D<double>* uncerta
     // Calculate the limited bounds
     double limited_upper_bound;
     double limited_lower_bound;
-    limitSingleBound(uncertainty_cube->upper_gaussian_dis_, t_start, t_end, BoundType::UPPER, &limited_upper_bound);
-    limitSingleBound(uncertainty_cube->lower_gaussian_dis_, t_start, t_end, BoundType::LOWER, &limited_lower_bound);
+    limitSingleBound(uncertainty_cube->upper_gaussian_dis_, t_start, t_end, BoundType::UPPER, uncertainty_cube->initial_cube_.upper_collision_type_, &limited_upper_bound);
+    limitSingleBound(uncertainty_cube->lower_gaussian_dis_, t_start, t_end, BoundType::LOWER, uncertainty_cube->initial_cube_.lower_collision_type_, &limited_lower_bound);
 
     // Update uncertainty cube
     uncertainty_cube->upper_gaussian_dis_.ave_values_(0, 0) = limited_upper_bound;
@@ -968,9 +979,15 @@ void UncertaintyStGraph::limitUncertaintyCube(UncertaintyCube2D<double>* uncerta
         
 }
 
-void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound) {    
+void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, const CollisionType& collision_type, double* limited_bound) {    
     // Initialize buffer value
     double buffer_value = 0.0;
+
+    // Special situations
+    if (collision_type == CollisionType::ACCELERATION_BOUNDARY) {
+        *limited_bound = line_gaussian_dis.ave_values_(0, 0);
+        return;
+    }
 
     // Traverse all the uncertainty occupied areas
     for (const auto& cur_uncertainty_occ_area : uncertainty_occupied_areas_) {

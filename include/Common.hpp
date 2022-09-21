@@ -42,6 +42,7 @@
 #include <vec_map_cpp_msgs/VirtualObstacle.h>
 #include <vec_map_cpp_msgs/GetGuidedCurves.h>
 #include <vec_map_cpp_msgs/GetPredictedTrajectory.h>
+#include <data_visualization_msg/StGraph.h>
 #include <path_planning_msgs/BoundedCurve.h>
 #include <path_planning_msgs/Curve.h>
 #include <path_planning_msgs/CurvePoint.h>
@@ -336,6 +337,9 @@ class SubVehicle{
     ros::ServiceServer mission_start_service_server_;  // 任务开始服务
     ros::ServiceServer forced_stop_service_server_;  // 强制停车服务
     self_test::TestRunner self_test_;  // 自检测对象
+
+    // Publish information for velocity planner
+    ros::Publisher st_graph_interface_pub_;
 
     //状态机相关变量
     std::vector<StandardState> states_set_;  // 状态机

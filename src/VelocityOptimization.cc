@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-21 09:34:04
+ * @LastEditTime: 2022-09-21 15:29:19
  * @Description: velocity optimization.
  */
 
@@ -1323,6 +1323,11 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
 
 }
 
+VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state, const ros::Publisher& st_graph_publisher) : VelocityPlanner(current_state) {
+    python_visualization_ = true;
+    st_graph_publisher_ = st_graph_publisher;
+}
+
 bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles) {
     
     if (!planning_state_->getCapability()) {
@@ -1365,7 +1370,6 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
         std::cout << "State name: " << planning_state_->getStateName() << " is not safe due to safety enhancement failure." << std::endl;
         return false;
     }
-
 
     // // DEBUG
     // st_graph_->visualization();
@@ -1429,6 +1433,70 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     // ~Stage V: supply s-t profile to the standard state
     planning_state_->loadStProfile(std::get<0>(profile), std::get<1>(profile), std::get<2>(profile));
     planning_state_->velocity_profile_generation_state_ = true;
+
+    // ~Stage VI: publish information to python visualization interface
+    if (python_visualization_) {
+        // Initialize published msg
+        data_visualization_msg::StGraph st_graph_msg;
+
+        // Supply veliocity results
+        data_visualization_msg::VelocityInfo velocity_res_info_msg;
+        velocity_res_info_msg.s = std::get<0>(profile);
+        velocity_res_info_msg.v = std::get<1>(profile);
+        velocity_res_info_msg.a = std::get<2>(profile);
+        velocity_res_info_msg.t = std::get<3>(profile);
+        st_graph_msg.velocity_info = velocity_res_info_msg;
+
+        // Supply initial cubes paths
+        data_visualization_msg::CubesPaths initial_cubes_paths_msg;
+        for (int i = 0; i < cube_paths.size(); i++) {
+            data_visualization_msg::Cubes single_cubes_path_msg;
+            for (int j = 0; j < cube_paths[i].size(); j++) {
+                data_visualization_msg::Cube cube_msg;
+                cube_msg.t_start = cube_paths[i][j].t_start_;
+                cube_msg.t_end = cube_paths[i][j].t_end_;
+                cube_msg.s_start = cube_paths[i][j].s_start_;
+                cube_msg.s_end = cube_paths[i][j].s_end_;
+                single_cubes_path_msg.cubes.emplace_back(cube_msg);
+            }
+            initial_cubes_paths_msg.cubes_paths.emplace_back(single_cubes_path_msg);
+        }
+        st_graph_msg.initial_corridors = initial_cubes_paths_msg;
+
+        // Supply enhanced cubes paths
+        data_visualization_msg::CubesPaths enhanced_cubes_paths_msg;
+        for (int i = 0; i < enhanced_cube_paths.size(); i++) {
+            data_visualization_msg::Cubes single_cubes_path_msg;
+            for (int j = 0; j < enhanced_cube_paths[i].size(); j++) {
+                data_visualization_msg::Cube cube_msg;
+                cube_msg.t_start = enhanced_cube_paths[i][j].t_start_;
+                cube_msg.t_end = enhanced_cube_paths[i][j].t_end_;
+                cube_msg.s_start = enhanced_cube_paths[i][j].s_start_;
+                cube_msg.s_end = enhanced_cube_paths[i][j].s_end_;
+                single_cubes_path_msg.cubes.emplace_back(cube_msg);
+            }
+            enhanced_cubes_paths_msg.cubes_paths.emplace_back(single_cubes_path_msg);
+        }
+        st_graph_msg.enhanced_corridors = enhanced_cubes_paths_msg;
+
+        // Supply occupied parallelograms
+        for (const auto& uncer_occ_area : st_graph_->uncertainty_occupied_areas_) {
+            data_visualization_msg::Parallelogram cur_parallelogram_msg;
+            cur_parallelogram_msg.vertex.resize(4);
+            for (int i = 0; i < 4; i++) {
+                cur_parallelogram_msg.vertex[i].t = uncer_occ_area.vertex_[i](0);
+                cur_parallelogram_msg.vertex[i].s = uncer_occ_area.vertex_[i](1);
+            }
+            st_graph_msg.occupied_areas.emplace_back(cur_parallelogram_msg);
+        }
+
+        // Supply state name 
+        st_graph_msg.state_name = DIC_STATE_NAME[planning_state_->getStateName()];
+
+        st_graph_publisher_.publish(st_graph_msg);
+
+    }
+
 
     return true;
 

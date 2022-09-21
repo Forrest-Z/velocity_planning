@@ -60,15 +60,15 @@ void DecisionMaking::SubVehicle::checkStates() {
     // Record time consumption
     clock_t start_time = clock();
     // VelocityPlanning::VelocityPlanner* v_planner_forward = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::FORWARD]));
-    std::shared_ptr<VelocityPlanning::VelocityPlanner> v_planner_forward = std::make_shared<VelocityPlanning::VelocityPlanner>(&(states_set_[StateNames::FORWARD]));
+    std::shared_ptr<VelocityPlanning::VelocityPlanner> v_planner_forward = std::make_shared<VelocityPlanning::VelocityPlanner>(&(states_set_[StateNames::FORWARD]), st_graph_interface_pub_);
     v_planner_forward->runOnce(obstacles);
 
     // VelocityPlanning::VelocityPlanner* v_planner_left = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::TURN_LEFT]));
-    std::shared_ptr<VelocityPlanning::VelocityPlanner> v_planner_left = std::make_shared<VelocityPlanning::VelocityPlanner>(&(states_set_[StateNames::TURN_LEFT]));
+    std::shared_ptr<VelocityPlanning::VelocityPlanner> v_planner_left = std::make_shared<VelocityPlanning::VelocityPlanner>(&(states_set_[StateNames::TURN_LEFT]), st_graph_interface_pub_);
     v_planner_left->runOnce(obstacles);
 
     // VelocityPlanning::VelocityPlanner* v_planner_right = new VelocityPlanning::VelocityPlanner(&(states_set_[StateNames::TURN_RIGHT]));
-    std::shared_ptr<VelocityPlanning::VelocityPlanner> v_planner_right = std::make_shared<VelocityPlanning::VelocityPlanner>(&(states_set_[StateNames::TURN_RIGHT]));
+    std::shared_ptr<VelocityPlanning::VelocityPlanner> v_planner_right = std::make_shared<VelocityPlanning::VelocityPlanner>(&(states_set_[StateNames::TURN_RIGHT]), st_graph_interface_pub_);
     v_planner_right->runOnce(obstacles);
 
     // std::thread v_planner_forward_thread = std::thread(&VelocityPlanning::VelocityPlanner::runOnce, v_planner_forward, obstacles);

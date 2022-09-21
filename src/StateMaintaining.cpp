@@ -298,7 +298,7 @@ void DecisionMaking::SubVehicle::maintainStates() {
                     // // 对期望状态进行动态速度规划
                     // this->velocityPlanningForState(&(this->expected_state_), obstacles, false);
 
-                    VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->expected_state_));
+                    VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->expected_state_), st_graph_interface_pub_);
                     v_planner->runOnce(obstacles);
 
                     // if (!(&expected_state_)->velocity_profile_generation_state_) {
@@ -445,7 +445,7 @@ void DecisionMaking::SubVehicle::maintainStates() {
                 re_dynamic_motion_planning_count = 0;
                 // this->velocityPlanningForState(&(this->choosed_state_), obstacles, true);
                 
-                VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->choosed_state_));
+                VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->choosed_state_), st_graph_interface_pub_);
                 v_planner->runOnce(obstacles);
 
                 // if (!(&choosed_state_)->velocity_profile_generation_state_) {
@@ -504,7 +504,7 @@ void DecisionMaking::SubVehicle::maintainStates() {
                     // 当前状态不安全，则重新开始速度规划
                     // this->velocityPlanningForState(&(this->choosed_state_), obstacles, true);
 
-                    VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->choosed_state_));
+                    VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->choosed_state_), st_graph_interface_pub_);
                     v_planner->runOnce(obstacles);
 
                     // if (!(&choosed_state_)->velocity_profile_generation_state_) {
@@ -801,7 +801,7 @@ void DecisionMaking::SubVehicle::stopStateMaintain() {
                     // 对期望状态进行动态速度规划
                     // this->velocityPlanningForState(&(this->expected_state_), obstacles, true);
 
-                    VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->expected_state_));
+                    VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->expected_state_), st_graph_interface_pub_);
                     v_planner->runOnce(obstacles);
 
                     // 进行动态速度规划和碰撞可视化
@@ -1145,7 +1145,7 @@ void DecisionMaking::SubVehicle::avoidanceStateMaintain() {
                     // 对期望状态进行动态速度规划
                     // this->velocityPlanningForState(&(this->expected_state_), obstacles, true);
 
-                    VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->expected_state_));
+                    VelocityPlanning::VelocityPlanner* v_planner = new VelocityPlanning::VelocityPlanner(&(this->expected_state_), st_graph_interface_pub_);
                     v_planner->runOnce(obstacles);
 
                     // 进行动态速度规划和碰撞可视化

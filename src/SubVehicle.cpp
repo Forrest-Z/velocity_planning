@@ -97,6 +97,9 @@ void DecisionMaking::SubVehicle::rosInit() {
     this->vis_multi_curve_pub_ = this->nh_.advertise<visualization_msgs::MarkerArray>(vis_multi_curve_topic, 10);
     this->vis_influence_obstacle_pub_ = this->nh_.advertise<visualization_msgs::MarkerArray>(vis_influence_obstacle_topic, 10);
 
+    // For velocity planner
+    st_graph_interface_pub_ = nh_.advertise<data_visualization_msg::StGraph>("/velocity_planning/st_graph_interface", 10);
+
     // 获取tf
     this->tf_listener_ptr_ = new tf::TransformListener();
 

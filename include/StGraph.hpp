@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-21 09:23:04
+ * @LastEditTime: 2022-09-21 10:05:16
  * @Description: s-t graph
  */
 
@@ -36,6 +36,15 @@ class Cube2D {
         s_end_ = s_end;
     }
 
+    Cube2D(const T& t_start, const T& t_end, const T& s_start, const T& s_end, const CollisionType& upper_t, const CollisionType& lower_t) {
+        t_start_ = t_start;
+        t_end_ = t_end;
+        s_start_ = s_start;
+        s_end_ = s_end;
+        upper_collision_type_ = upper_t;
+        lower_collision_type_ = lower_t;
+    }
+
     ~Cube2D() = default;
 
     void print() {
@@ -46,6 +55,9 @@ class Cube2D {
     T t_end_;
     T s_start_;
     T s_end_;
+
+    CollisionType upper_collision_type_{CollisionType::UNKNOWN};
+    CollisionType lower_collision_type_{CollisionType::UNKNOWN};
 };
 
 template<typename T>
@@ -252,7 +264,7 @@ class UncertaintyStGraph : public StGraph {
      * @description: limit the single bounds for each cube
      * @return {*}
      */    
-    void limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, double* limited_bound);
+    void limitSingleBound(const Gaussian1D& line_gaussian_dis, const double& t_start, const double& t_end, const BoundType& bound_type, const CollisionType& collision_type, double* limited_bound);
 
     std::vector<UncertaintyOccupiedArea> uncertainty_occupied_areas_;
 

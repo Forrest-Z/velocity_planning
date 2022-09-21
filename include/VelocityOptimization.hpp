@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:08
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-19 20:09:35
+ * @LastEditTime: 2022-09-21 15:04:10
  * @Description: velocity optimization.
  */
 
@@ -174,6 +174,7 @@ class BezierPiecewiseCurve {
 class VelocityPlanner {
  public:
     VelocityPlanner(DecisionMaking::StandardState* current_state);
+    VelocityPlanner(DecisionMaking::StandardState* current_state, const ros::Publisher& st_graph_publisher);
     ~VelocityPlanner();
 
     bool runOnce(const std::vector<DecisionMaking::Obstacle>& obstacles);
@@ -184,6 +185,9 @@ class VelocityPlanner {
     DecisionMaking::StandardState* planning_state_{nullptr};
 
     std::array<double, 3> start_state_;
+
+    bool python_visualization_{false};
+    ros::Publisher st_graph_publisher_;
 
 };
 

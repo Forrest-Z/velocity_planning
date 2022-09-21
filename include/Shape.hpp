@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 15:52:18
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-20 14:47:56
+ * @LastEditTime: 2022-09-21 11:45:53
  * @Description: description of parallelogram
  */
 
@@ -24,6 +24,12 @@ enum class TRelativePositionType {
     RIGHT = 1,
     OVERLAPPED = 2,
     UNKNOWN = 3,
+};
+
+enum class CollisionType {
+    ACCELERATION_BOUNDARY = 0,
+    OBSTACLE_BOUNDARY = 1,
+    UNKNOWN = 2,
 };
 
 enum class BoundType {
