@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-20 15:49:15
+ * @LastEditTime: 2022-09-21 09:34:04
  * @Description: velocity optimization.
  */
 
@@ -881,10 +881,13 @@ void VelocityOptimizer::runSingleCubesPath(const std::vector<Cube2D<double>>& cu
     std::array<double, 3> end_state = {end_s, 0.0, 0.0};
     bool optimization_res = OsqpOptimizationInterface::runOnce(ref_stamps, start_state, end_state, unequal_constraints, equal_constraints, polynomial_unequal_constraints, &optimized_s, &objective_value);
 
-    // DEBUG
-    std::cout << "end s: " << end_s << std::endl;
-    std::cout << "optimization res: " << optimization_res << std::endl;
-    // END DEBUG
+    // // DEBUG
+    // std::cout << "end s: " << end_s << std::endl;
+    // std::cout << "optimization res: " << optimization_res << std::endl;
+    // // END DEBUG
+
+    printf("[VelocityOptimizer] End s: %lf.\n", end_s);
+    printf("[VelocityOptimizer] Optimization result: %d.\n", optimization_res);
 
     ss_[index] = optimized_s;
     tt_[index] = ref_stamps;
@@ -1270,10 +1273,12 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
 
         if (!excess_limit) {
 
-            // DEBUG
-            std::cout << "Planning from the point in the previous trajectory" << std::endl;
-            std::cout << "v: " << planning_state_->v_[lower_index] << ", a: " << planning_state_->a_[lower_index] << std::endl;
-            // END DEBUG 
+            // // DEBUG
+            // std::cout << "Planning from the point in the previous trajectory" << std::endl;
+            // std::cout << "v: " << planning_state_->v_[lower_index] << ", a: " << planning_state_->a_[lower_index] << std::endl;
+            // // END DEBUG 
+
+            printf("[VelocityPlanner] Planning from the point in the previous trajectory with v: %lf, a: %lf.\n", planning_state_->v_[lower_index], planning_state_->a_[lower_index]);
 
             start_state_ = {0.0, planning_state_->v_[lower_index], planning_state_->a_[lower_index]};
             // Construct s-t graph
@@ -1292,10 +1297,12 @@ VelocityPlanner::VelocityPlanner(DecisionMaking::StandardState* current_state) {
 
     if (planning_state_->last_planned_curve_.empty() || excess_limit) {
 
-        // DEBUG
-        std::cout << "Planning from current state" << std::endl;
-        std::cout << "v: " << vehicle_movement_state.velocity_ << ", a: " << vehicle_movement_state.acceleration_ << std::endl;
-        // END DEBUG 
+        // // DEBUG
+        // std::cout << "Planning from current state" << std::endl;
+        // std::cout << "v: " << vehicle_movement_state.velocity_ << ", a: " << vehicle_movement_state.acceleration_ << std::endl;
+        // // END DEBUG 
+
+        printf("[VelocityPlanner] Planning from current state with v: %lf, a: %lf.\n", vehicle_movement_state.velocity_, vehicle_movement_state.acceleration_);
 
         // Test limit the acceleration
         // Acceleration information from the IMU may include noise
@@ -1368,9 +1375,12 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     std::vector<double> s;
     std::vector<double> t;
 
-    std::cout << "State name: " << planning_state_->getStateName() << std::endl;
-    std::cout << "Max velocity: " << planning_state_->getVelocityLimitationMax() << ", min velocity: " << planning_state_->getVelocityLimitationMin() << std::endl;
-    std::cout << "Max acceleration: " << planning_state_->getAccelerationLimitationMax() << ", min acceleration: " << planning_state_->getAccelerationLimitationMin() << std::endl;
+    // std::cout << "State name: " << planning_state_->getStateName() << std::endl;
+    // std::cout << "Max velocity: " << planning_state_->getVelocityLimitationMax() << ", min velocity: " << planning_state_->getVelocityLimitationMin() << std::endl;
+    // std::cout << "Max acceleration: " << planning_state_->getAccelerationLimitationMax() << ", min acceleration: " << planning_state_->getAccelerationLimitationMin() << std::endl;
+
+    printf("[VelocityPlanner] Planned state name: %s.\n", DIC_STATE_NAME[planning_state_->getStateName()].c_str());
+    printf("[VelocityPlanner] Velocity range: %lf - %lf, acceleration range: %lf - %lf.\n", planning_state_->getVelocityLimitationMax(), planning_state_->getVelocityLimitationMin(), planning_state_->getAccelerationLimitationMax(), planning_state_->getAccelerationLimitationMin());
 
     velocity_optimizer_ = new VelocityPlanning::VelocityOptimizer();
     bool optimization_success = velocity_optimizer_->runOnce(enhanced_cube_paths, start_state_, last_s_range, planning_state_->getVelocityLimitationMax(), planning_state_->getVelocityLimitationMin(), planning_state_->getAccelerationLimitationMax(), planning_state_->getAccelerationLimitationMin(), &s, &t);

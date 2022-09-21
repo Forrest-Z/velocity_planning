@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-20 15:46:42
+ * @LastEditTime: 2022-09-21 09:28:10
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -372,12 +372,12 @@ std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> StGraph::l
         // Record
         real_vertex_and_interaction_theta.emplace_back(std::make_tuple(real_vertice, ego_vehicle_interaction_theta, obstacle_interaction_theta));
 
-        // DEBUG
-        for (int i = 0; i < 4; i++) {
-            std::cout << "Vertice number: " << i << std::endl;
-            std::cout << real_vertice[i] << std::endl;
-        }
-        // END DEBUG
+        // // DEBUG
+        // for (int i = 0; i < 4; i++) {
+        //     std::cout << "Vertice number: " << i << std::endl;
+        //     std::cout << real_vertice[i] << std::endl;
+        // }
+        // // END DEBUG
 
         // Convert
         std::vector<Eigen::Vector2i> grid_positions = realValuesToGridPoss(real_vertice);
@@ -597,15 +597,23 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
         *output_cubes = connected_cubes_;
 
         // // DEBUG
+        // for (int i = 0; i < connected_cubes_.size(); i++) {
+        //     std::cout << "path " << i << std::endl;
+        //     for (int j = 0; j < connected_cubes_[i].size(); j++) {
+        //         std::cout << "cube " << j << std::endl;
+        //         connected_cubes_[i][j].print();
+        //     }
+        // }
+        // visualization(calculated_grid_cubes_columns_, "Initial cubes paths");
+        // // END DEBUG
+
         for (int i = 0; i < connected_cubes_.size(); i++) {
-            std::cout << "path " << i << std::endl;
+            printf("[StGraph] Path index: %d.\n", i);
             for (int j = 0; j < connected_cubes_[i].size(); j++) {
-                std::cout << "cube " << j << std::endl;
+                printf("[StGraph] Cube index: %d, with information: ", j);
                 connected_cubes_[i][j].print();
             }
         }
-        // visualization(calculated_grid_cubes_columns_, "Initial cubes paths");
-        // // END DEBUG
 
 
         calculated_grid_cubes_columns_.clear();
@@ -854,14 +862,14 @@ bool UncertaintyStGraph::enhanceSafety(const std::vector<std::vector<Cube2D<doub
 
 
     // DEBUG
-    std::cout << "+++++++++++++++++++++++++++++++++ Enhanced safety cubes information +++++++++++++++++++++++++++++++++" << std::endl;
-    for (int i = 0; i < executed_cube_paths.size(); i++) {
-        std::cout << "path " << i << std::endl;
-        for (int j = 0; j < executed_cube_paths[i].size(); j++) {
-            std::cout << "cube " << j << std::endl;
-            executed_cube_paths[i][j].print();
-        }
-    }
+    // std::cout << "+++++++++++++++++++++++++++++++++ Enhanced safety cubes information +++++++++++++++++++++++++++++++++" << std::endl;
+    // for (int i = 0; i < executed_cube_paths.size(); i++) {
+    //     std::cout << "path " << i << std::endl;
+    //     for (int j = 0; j < executed_cube_paths[i].size(); j++) {
+    //         std::cout << "cube " << j << std::endl;
+    //         executed_cube_paths[i][j].print();
+    //     }
+    // }
     // END DEBUG
 
     // // DEBUG
@@ -869,6 +877,15 @@ bool UncertaintyStGraph::enhanceSafety(const std::vector<std::vector<Cube2D<doub
     // std::vector<std::vector<Cube2D<int>>> grid_cubes_paths = realCubesPathsToGridCubesPaths(executed_cube_paths);
     // visualization(grid_cubes_paths, "Enhanced cubes paths");
     // // END DEBUG
+
+    std::cout << "+++++++++++++++++++++++++++++++++ Enhanced safety cubes information +++++++++++++++++++++++++++++++++" << std::endl;
+    for (int i = 0; i < executed_cube_paths.size(); i++) {
+        printf("[UncertaintyStGraph] Path index: %d.\n", i);
+        for (int j = 0; j < executed_cube_paths[i].size(); j++) {
+            printf("[UncertaintyStGraph] Cube index: %d, with information: ", j);
+            executed_cube_paths[i][j].print();
+        }
+    }
 
     // Check continuity
     std::vector<std::vector<Cube2D<double>>> checked_connected_cube_paths;
@@ -1003,13 +1020,13 @@ void UncertaintyStGraph::limitSingleBound(const Gaussian1D& line_gaussian_dis, c
             start_diff_gaussian_dis = line_gaussian_dis - start_gaussian_dis;
             end_diff_gaussian_dis = line_gaussian_dis - end_gaussian_dis;
         } else {
-            printf("[UncertaintyStGraph] unknown bound type!!!\n");
+            printf("[UncertaintyStGraph] Unknown bound type!!!\n");
             assert(false);
         }
 
         if (start_diff_gaussian_dis.ave_values_(0, 0) < 0.0 || end_diff_gaussian_dis.ave_values_(0, 0) < 0.0) {
             // TODO: check this logic, it is likely that there is a bug
-            printf("[UncertaintyStGraph] emergence situation!!!\n");
+            printf("[UncertaintyStGraph] Emergence situation!!!\n");
         }
         double start_diff_gaussian_res_buffer = LookUpTable::GaussianAverageValue::calculate(start_diff_gaussian_dis.covariance_(0, 0), current_required_confidence);
         double end_diff_gaussian_res_buffer = LookUpTable::GaussianAverageValue::calculate(end_diff_gaussian_dis.covariance_(0, 0), current_required_confidence);

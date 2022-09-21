@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-20 15:27:10
+ * @LastEditTime: 2022-09-21 09:23:04
  * @Description: s-t graph
  */
 
@@ -39,7 +39,7 @@ class Cube2D {
     ~Cube2D() = default;
 
     void print() {
-        std::cout << "t start: " << t_start_ << ", t end: " << t_end_ << ", s start: " << s_start_ << ", s end: " << s_end_ << std::endl; 
+        std::cout << "[Cube2D] "<< "t start: " << t_start_ << ", t end: " << t_end_ << ", s start: " << s_start_ << ", s end: " << s_end_ << std::endl; 
     }
 
     T t_start_;
