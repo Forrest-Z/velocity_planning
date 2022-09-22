@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-21 20:02:36
+ * @LastEditTime: 2022-09-22 15:34:59
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -353,10 +353,22 @@ std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> StGraph::l
         double obstacle_interaction_theta = cur_obs_occupy_area.getOccupationArea()[cur_obs_start_collision_index].rotation_;
 
         // Calculate collision information
-        double t_start = (cur_obs_start_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity();
-        double t_end = std::min((cur_obs_end_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity(), param_.t_max);
-        double s_start = ego_vehicle_start_collision_index * LANE_GAP_DISTANCE;
-        double s_end = ego_vehicle_end_collision_index * LANE_GAP_DISTANCE;
+        double t_start = 0.0;
+        double t_end = 0.0;
+        double s_start = 0.0;
+        double s_end = 0.0;
+        if (obstacle.getObstacleVelocity() >= 0.5) {
+            t_start = std::max((cur_obs_start_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity(), 0.0);
+            t_end = std::min((cur_obs_end_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity(), param_.t_max);
+            s_start = ego_vehicle_start_collision_index * LANE_GAP_DISTANCE;
+            s_end = ego_vehicle_end_collision_index * LANE_GAP_DISTANCE;
+        } else {
+            t_start = 0.0;
+            t_end = std::min((cur_obs_end_collision_index * OBSTACLE_MARGIN) / obstacle.getObstacleVelocity(), param_.t_max);
+            s_start = ego_vehicle_start_collision_index * LANE_GAP_DISTANCE;
+            s_end = s_start;
+        }
+
 
         // // DEBUG
         // std::cout << "t start: " << t_start << std::endl;
