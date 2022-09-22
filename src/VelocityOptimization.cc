@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-21 15:29:19
+ * @LastEditTime: 2022-09-21 20:18:56
  * @Description: velocity optimization.
  */
 
@@ -1392,7 +1392,7 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     if (optimization_success) {
         // std::cout << "Velocity profile generation success." << std::endl;
         // std::cout << "Final selected s: " << s.back() << std::endl;
-        printf("[VelocityPlanner] Velocity profile generation success.\n");
+        printf("[VelocityPlanner] %s velocity profile generation success.\n", DIC_STATE_NAME[planning_state_->getStateName()].c_str());
         printf("[VelocityPlanner] Final selected s: %lf, average velocity: %lf.\n", s.back(), s.back() / st_graph_->param_.t_max);
     } 
 

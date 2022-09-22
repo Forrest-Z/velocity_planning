@@ -779,11 +779,11 @@ bool DecisionMaking::RSS::occupationInteractionJudgement(const OccupationArea &s
     // Refine obstacle collision points
     if (cur_obstacle_start_interact_index == cur_obstacle_end_interact_index && cur_obstacle_start_interact_index != -1) {
         
-        // DEBUG
-        std::cout << "*************************************" << std::endl;
-        std::cout << "Refinement of the obstacle collision point" << std::endl;
-        std::cout << "*************************************" << std::endl;
-        // END DEBUG
+        // // DEBUG
+        // std::cout << "*************************************" << std::endl;
+        // std::cout << "Refinement of the obstacle collision point" << std::endl;
+        // std::cout << "*************************************" << std::endl;
+        // // END DEBUG
 
 
         int new_start_index = obstacle_occupation_area.getSampledOccupationAreaBijectionIndex(cur_obstacle_start_interact_index);

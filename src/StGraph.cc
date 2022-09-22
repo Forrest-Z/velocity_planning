@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-21 18:06:11
+ * @LastEditTime: 2022-09-21 20:02:36
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -616,7 +616,7 @@ bool StGraph::connectCubes(const std::vector<std::vector<Cube2D<double>>>& input
         //         connected_cubes_[i][j].print();
         //     }
         // }
-        visualization(calculated_grid_cubes_columns_, "Initial cubes paths");
+        // visualization(calculated_grid_cubes_columns_, "Initial cubes paths");
         // // END DEBUG
 
         for (int i = 0; i < connected_cubes_.size(); i++) {
@@ -883,11 +883,11 @@ bool UncertaintyStGraph::enhanceSafety(const std::vector<std::vector<Cube2D<doub
     // }
     // END DEBUG
 
-    // DEBUG
-    // Visualization
-    std::vector<std::vector<Cube2D<int>>> grid_cubes_paths = realCubesPathsToGridCubesPaths(executed_cube_paths);
-    visualization(grid_cubes_paths, "Enhanced cubes paths");
-    // END DEBUG
+    // // DEBUG
+    // // Visualization
+    // std::vector<std::vector<Cube2D<int>>> grid_cubes_paths = realCubesPathsToGridCubesPaths(executed_cube_paths);
+    // visualization(grid_cubes_paths, "Enhanced cubes paths");
+    // // END DEBUG
 
     std::cout << "+++++++++++++++++++++++++++++++++ Enhanced safety cubes information +++++++++++++++++++++++++++++++++" << std::endl;
     for (int i = 0; i < executed_cube_paths.size(); i++) {
