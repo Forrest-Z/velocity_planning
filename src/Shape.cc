@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 15:55:25
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-20 14:49:30
+ * @LastEditTime: 2022-09-22 14:19:04
  * @Description: description of shapes and its functions
  */
 
@@ -65,7 +65,7 @@ Parallelogram Parallelogram::calculateTruncatedParallelogram(const double& t_sta
 
 bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_start, const double& t_end, const Parallelogram& polynomial_vertex, const double& tolerance, double* nearest_t_in_line, Eigen::Vector2d& nearest_vertice_in_polynomial, SRelativePositionType* relative_pos, TRelativePositionType* t_relative_pos) {
     // Judge whether relative positions in the t dimension
-    if (polynomial_vertex[0](0) > t_end) {
+    if (polynomial_vertex[0](0) >= t_end) {
         // Polynomial is on the right direction of line 
         // Record t
         *nearest_t_in_line = t_end;
@@ -83,7 +83,7 @@ bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_s
         }
         *t_relative_pos = TRelativePositionType::RIGHT;
 
-    } else if (polynomial_vertex[2](0) < t_start) {
+    } else if (polynomial_vertex[2](0) <= t_start) {
         // Polynomial is on the left direction of line
         // Record t
         *nearest_t_in_line = t_start;
@@ -115,6 +115,16 @@ bool ShapeUtils::judgeLineWithPolynomial(const double& line_s, const double& t_s
             valid_parallelogram = polynomial_vertex.calculateTruncatedParallelogram(t_start, polynomial_vertex[2](0));
         } else {
             printf("[ShapeUtils] Unknown relative positions situations!!!\n");
+            
+            // DEBUG
+            std::cout << "t start: " << t_start << std::endl;
+            std::cout << "t end: " << t_end << std::endl;
+            std::cout << "Vertex 0: " << polynomial_vertex[0] << std::endl;
+            std::cout << "Vertex 1: " << polynomial_vertex[1] << std::endl;
+            std::cout << "Vertex 2: " << polynomial_vertex[2] << std::endl;
+            std::cout << "Vertex 3: " << polynomial_vertex[3] << std::endl;
+            // END DEBUG
+
             assert(false);
         }
 
