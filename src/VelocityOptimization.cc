@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-21 20:18:56
+ * @LastEditTime: 2022-09-23 19:49:38
  * @Description: velocity optimization.
  */
 
@@ -1345,15 +1345,15 @@ bool VelocityPlanner::runOnce(const std::vector<DecisionMaking::Obstacle>& obsta
     // std::cout << "Obstacle number: " << obstacles.size() << std::endl; 
     // // END DEBUG
 
-    // Filter obstacles (for simulation only)
-    std::vector<DecisionMaking::Obstacle> valid_obstacles;
-    for (const auto& obs : obstacles) {
-        if (sqrt(pow(planning_state_->getVehicleStartState().position_.x_ - obs.getObstaclePosition().x_, 2) + pow(planning_state_->getVehicleStartState().position_.y_ - obs.getObstaclePosition().y_, 2)) <= 50.0) {
-            valid_obstacles.emplace_back(obs);
-        }
-    }
+    // // Filter obstacles (for simulation only)
+    // std::vector<DecisionMaking::Obstacle> valid_obstacles;
+    // for (const auto& obs : obstacles) {
+    //     if (sqrt(pow(planning_state_->getVehicleStartState().position_.x_ - obs.getObstaclePosition().x_, 2) + pow(planning_state_->getVehicleStartState().position_.y_ - obs.getObstaclePosition().y_, 2)) <= 50.0) {
+    //         valid_obstacles.emplace_back(obs);
+    //     }
+    // }
 
-    bool graph_success = st_graph_->generateInitialCubePath(valid_obstacles, &cube_paths, &last_s_range);
+    bool graph_success = st_graph_->generateInitialCubePath(obstacles, &cube_paths, &last_s_range);
     if (!graph_success) {
         planning_state_->setSafety(false);
         planning_state_->velocity_profile_generation_state_ = false;

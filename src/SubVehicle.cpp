@@ -100,6 +100,9 @@ void DecisionMaking::SubVehicle::rosInit() {
     // For velocity planner
     st_graph_interface_pub_ = nh_.advertise<data_visualization_msg::StGraph>("/velocity_planning/st_graph_interface", 10);
 
+    // Publish obstacle distance
+    obstacle_distance_pub_ = nh_.advertise<std_msgs::Float64>("/motion_planning/obstacle_distance", 10);
+
     // 获取tf
     this->tf_listener_ptr_ = new tf::TransformListener();
 

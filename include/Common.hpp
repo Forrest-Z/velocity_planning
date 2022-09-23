@@ -341,6 +341,9 @@ class SubVehicle{
     // Publish information for velocity planner
     ros::Publisher st_graph_interface_pub_;
 
+    // Publish obstacles distance
+    ros::Publisher obstacle_distance_pub_;
+
     //状态机相关变量
     std::vector<StandardState> states_set_;  // 状态机
     StandardState current_state_;  // 当前的状态

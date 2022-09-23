@@ -146,6 +146,24 @@ void DecisionMaking::SubVehicle::updateObstacleInformation() {
     //         LOG(INFO) << "-- trajectory " << j << " length is " << this->obstacles_[i].getPredictedTrajectory(j).size();
     //     }
     // }
+
+    // Get the current position
+    double cur_x = 0.0;
+    double cur_y = 0.0;
+    this->current_vehicle_world_position_mutex_.lock();
+    cur_x = this->current_vehicle_world_position_.position_.x_;
+    cur_y = this->current_vehicle_world_position_.position_.y_;
+    this->current_vehicle_world_position_mutex_.unlock();
+    // Publish the nearest distance to obstacle
+    double min_distance = INT_MAX;
+    for (const auto& obs : obstacles_) {
+        double cur_dis = sqrt(pow(cur_x - obs.getObstaclePosition().x_, 2.0) + pow(cur_y - obs.getObstaclePosition().y_, 2.0));
+        min_distance = std::min(min_distance, cur_dis);
+    } 
+    std_msgs::Float64 distance_msg;
+    distance_msg.data = min_distance;
+    obstacle_distance_pub_.publish(distance_msg);
+
     this->obstacle_mutex_.unlock();
 }
 
