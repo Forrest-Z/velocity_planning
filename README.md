@@ -1,1 +1,1 @@
-multi_path_generator
+Velocity planning using planning convex space segmentation and safety enhancement.
