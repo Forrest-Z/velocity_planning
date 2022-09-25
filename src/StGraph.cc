@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-22 15:34:59
+ * @LastEditTime: 2022-09-25 11:52:47
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -334,14 +334,14 @@ std::vector<std::tuple<std::vector<Eigen::Vector2d>, double, double>> StGraph::l
             continue;
         }
 
-        // if (ego_vehicle_start_collision_index == 0) {
+        if (ego_vehicle_start_collision_index == 0) {
             
-        //     // // DEBUG
-        //     // std::cout << "Rear vehicle, ignored" << std::endl;
-        //     // // END DEBUG
+            // // DEBUG
+            // std::cout << "Rear vehicle, ignored" << std::endl;
+            // // END DEBUG
 
-        //     continue;
-        // }
+            continue;
+        }
 
         // Handle the situation where s_end is smaller than s_start
         if (obstacle.getObstacleVelocity() > 1.0 && fabs(obstacle.getObstacleVelocityDirection() - ego_occupy_area_.getOccupationArea()[ego_vehicle_start_collision_index].rotation_) > M_PI / 2.0) {

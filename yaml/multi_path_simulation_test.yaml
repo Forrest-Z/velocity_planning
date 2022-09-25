@@ -1,5 +1,5 @@
 - vehicle:
-    ## jiugonggeqidian
+    # jiugonggeqidian
     x: -11270.7373047
     y: -2595.35864258
     z: 0.0
@@ -166,6 +166,12 @@
     # y: -2462.7644043
     # z: 0.0
     # yaw: 0.273131643371173
+
+    # # Highway qidian main road net
+    # x: -12274.2373047
+    # y: -2071.43334961
+    # z: 0.0
+    # yaw: -1.3634057955693895
 
     pub_tf: true
     pub_odom: true
