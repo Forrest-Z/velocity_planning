@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-09-13 09:29:45
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-16 18:24:50
+ * @LastEditTime: 2022-09-25 20:15:33
  * @Description: gaussian distribution
  */
 
@@ -25,7 +25,11 @@ double GaussianUtils::calculateDistributionProbability(const Gaussian2D& gaussia
     double start_prob = LookUpTable::GaussianIntegral::calculate(variance, transformed_start_value);
     double res_prob = end_prob - start_prob;
 
-    assert(res_prob >= 0.0);
+    // assert(res_prob >= 0.0);
+
+    if (!(res_prob >= 0.0)) {
+        res_prob = 0.0;
+    } 
 
     return res_prob;
 }
