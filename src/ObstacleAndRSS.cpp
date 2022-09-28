@@ -150,14 +150,26 @@ void DecisionMaking::SubVehicle::updateObstacleInformation() {
     // Get the current position
     double cur_x = 0.0;
     double cur_y = 0.0;
+    double cur_orientation = 0.0;
     this->current_vehicle_world_position_mutex_.lock();
     cur_x = this->current_vehicle_world_position_.position_.x_;
     cur_y = this->current_vehicle_world_position_.position_.y_;
+    cur_orientation = this->current_vehicle_world_position_.theta_;
     this->current_vehicle_world_position_mutex_.unlock();
+
+    // Construct vehicle rectangle
+    Rectangle ego_vehicle_rectagle = Rectangle(cur_x, cur_y, cur_orientation, 1.864, 4.95);
+
     // Publish the nearest distance to obstacle
     double min_distance = INT_MAX;
     for (const auto& obs : obstacles_) {
-        double cur_dis = sqrt(pow(cur_x - obs.getObstaclePosition().x_, 2.0) + pow(cur_y - obs.getObstaclePosition().y_, 2.0));
+        double cur_obs_x = obs.position_.x_;
+        double cur_obs_y = obs.position_.y_;
+        double cur_obs_theta = obs.orientation_;
+        double cur_obs_width = obs.width_;
+        double cur_obs_length = obs.length_;
+        Rectangle cur_obs_rectangle = Rectangle(cur_obs_x, cur_obs_y, cur_obs_theta, cur_obs_width, cur_obs_length);
+        double cur_dis = Tools::rectangleShortestDistance(ego_vehicle_rectagle, cur_obs_rectangle);
         min_distance = std::min(min_distance, cur_dis);
     } 
     std_msgs::Float64 distance_msg;
