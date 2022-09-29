@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-25 11:52:47
+ * @LastEditTime: 2022-09-29 11:27:39
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -462,6 +462,15 @@ void StGraph::loadAccelerationLimitation() {
 
         
     }
+
+    // // DEBUG
+    // std::cout << "*********************************" << std::endl;
+    // std::cout << "start velocity: " << start_velocity_ << std::endl;
+    // std::cout << "max speed: " << param_.velocity_max << std::endl;
+    // for (int i = 0; i < sampled_ts.size(); i++) {
+    //     std::cout << "t: " << sampled_ts[i] << ", lower: " << sampled_lower_ss[i] << ", upper: " << sampled_upper_ss[i] << std::endl;
+    // }
+    // // END DEBUG
 
     // Generate boundary points
     std::vector<Eigen::Vector2d> lower_boundary_values;

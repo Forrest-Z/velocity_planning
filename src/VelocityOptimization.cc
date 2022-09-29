@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-04 14:14:24
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-28 08:46:58
+ * @LastEditTime: 2022-09-29 20:14:38
  * @Description: velocity optimization.
  */
 
@@ -113,7 +113,7 @@ void OsqpOptimizationInterface::calculateConstraintsMatrix(const std::vector<dou
             @equal_constraints: the constraints for the continuity between two adjacent cubes
             @polynomial_unequal_constraints: the constraints for the limitation of velocity and acceleration
     */
-    int constraints_num = 2 + 1 + (unequal_constraints[0].size() - 1) + equal_constraints.size() + std::get<1>(polynomial_unequal_constraints).size();
+    int constraints_num = 3 + 1 + (unequal_constraints[0].size() - 1) + equal_constraints.size() + std::get<1>(polynomial_unequal_constraints).size();
 
     Eigen::MatrixXd constraints_matrix = Eigen::MatrixXd::Zero(constraints_num, variables_num);
     Eigen::VectorXd lower_bounds_vec = Eigen::MatrixXd::Zero(constraints_num, 1);
@@ -137,11 +137,11 @@ void OsqpOptimizationInterface::calculateConstraintsMatrix(const std::vector<dou
     lower_bounds_vec(iter) = start_state[1] * start_cube_time_span;
     upper_bounds_vec(iter) = start_state[1] * start_cube_time_span;
     iter += 1;
-    // // Supply start point acceleration constraint
-    // constraints_matrix(iter, 0) = 20.0, constraints_matrix(iter, 1) = -40.0, constraints_matrix(iter, 2) = 20.0;
-    // lower_bounds_vec(iter) = start_state[2] * start_cube_time_span;
-    // upper_bounds_vec(iter) = start_state[2] * start_cube_time_span;
-    // iter += 1;
+    // Supply start point acceleration constraint
+    constraints_matrix(iter, 0) = 20.0, constraints_matrix(iter, 1) = -40.0, constraints_matrix(iter, 2) = 20.0;
+    lower_bounds_vec(iter) = start_state[2] * start_cube_time_span;
+    upper_bounds_vec(iter) = start_state[2] * start_cube_time_span;
+    iter += 1;
 
     // ~Stage III: supply unequal constraints 
     for (int i = 1; i < unequal_constraints[0].size(); i++) {
