@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:59:29
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-29 11:27:39
+ * @LastEditTime: 2022-09-30 09:44:28
  * @Description: s-t graph for velocity planning.
  */
 #include "Common.hpp"
@@ -443,20 +443,30 @@ void StGraph::loadAccelerationLimitation() {
 
         // // Calculate the lower boundary point
         // double sampled_cur_lower_s = start_velocity_ * sampled_t + 0.5 * param_.acc_min * pow(sampled_t, 2);
-        // sampled_lower_ss[i] = std::max(0.0, sampled_cur_lower_s);
+        // if (sampled_t <= param_.acc_min_initial_valid_maximum) {
+        //     sampled_lower_ss[i] = 0.0;
+        // } else {
+        //     sampled_lower_ss[i] = std::max(0.0, sampled_cur_lower_s);
+        // }
         // if (i > 0) {
         //     sampled_lower_ss[i] = std::max(sampled_lower_ss[i], sampled_lower_ss[i - 1]);
         // }
-        sampled_lower_ss[i] = 0.0;
+        sampled_lower_ss[0] = 0.0;
         
 
         // Calculate the upper boundary point
-        double cur_pred_velocity = start_velocity_ + sampled_t * param_.acc_max;
+        double required_acc = 0.0;
+        if (sampled_t <= param_.acc_max_initial_valid_maximum) {
+            required_acc = param_.acc_max_initial;
+        } else {
+            required_acc = param_.acc_max;
+        }
+        double cur_pred_velocity = start_velocity_ + sampled_t * required_acc;
         double sampled_cur_upper_s = 0.0;
         if (cur_pred_velocity >= param_.velocity_max && i != 0) {
             sampled_cur_upper_s = sampled_upper_ss[i - 1] + (sampled_ts[i] - sampled_ts[i - 1]) * param_.velocity_max;
         } else {
-            sampled_cur_upper_s = start_velocity_ * sampled_t + 0.5 * param_.acc_max * pow(sampled_t, 2);
+            sampled_cur_upper_s = start_velocity_ * sampled_t + 0.5 * required_acc * pow(sampled_t, 2);
         }
         sampled_upper_ss[i] = std::min(param_.s_max, sampled_cur_upper_s);
 

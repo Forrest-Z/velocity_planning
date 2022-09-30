@@ -2,7 +2,7 @@
  * @Author: fujiawei0724
  * @Date: 2022-08-03 15:54:48
  * @LastEditors: fujiawei0724
- * @LastEditTime: 2022-09-21 10:05:16
+ * @LastEditTime: 2022-09-30 09:46:43
  * @Description: s-t graph
  */
 
@@ -134,8 +134,11 @@ class StGraph {
         double t_max = 5.0;
         double s_resolution = 0.1;
         double t_resolution = 0.1;
-        double acc_max = 1.5;
-        double acc_min = -2.0;
+        double acc_max = 1.8;
+        double acc_max_initial = 4.0;
+        double acc_max_initial_valid_maximum = 1.5;
+        double acc_min = -7.0;
+        // double acc_min_initial_valid_maximum = 2.0;
         int acc_limit_t_sampled_points_num = 10;
         int lateral_segement_number = 10;
         double velocity_max = 6.0;
